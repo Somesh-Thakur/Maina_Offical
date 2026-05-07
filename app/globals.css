@@ -1,26 +1,107 @@
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", "sans-serif";
+  --font-display: "Satoshi", "sans-serif";
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
+  
+  --color-accent: var(--accent);
+  --color-accent-muted: var(--accent-muted);
+  --color-bg-glow: var(--bg-glow);
+  --color-text-on-accent: var(--text-on-accent);
+
+  --radius-card: var(--radius-card);
+  --radius-sm: var(--radius-sm);
+  --radius-pill: var(--radius-pill);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #030712;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+  --radius-card: 12px;
+  --radius-sm: 8px;
+  --radius-pill: 4px;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Dynamic — updated by useTheme hook, these are defaults */
+  --accent: #3b82f6; /* Tailwind blue-500 */
+  --accent-muted: rgba(59, 130, 246, 0.2);
+  --bg-glow: rgba(59, 130, 246, 0.08);
+  --text-on-accent: #ffffff;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(135deg, #020617 0%, #1e1b4b 50%, #0f172a 100%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Base resets */
+* {
+  box-sizing: border-box;
+}
+
+/* Utility to hide standard scrollbar in specific scroll containers while allowing scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, var(--surface) 4%, var(--surface-hover) 25%, var(--surface) 36%);
+  background-size: 1000px 100%;
 }
