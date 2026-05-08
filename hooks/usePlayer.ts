@@ -4,7 +4,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useYouTube } from './useYouTube';
 
 export function usePlayer() {
-  const { playerReady, play, pause, resume, setVolume, setPlaybackRate, getActivePlayer, seekTo } = useYouTube();
+  const { playerReady, play, pause, resume, setVolume, setPlaybackRate, getActivePlayer, seekTo, cueNext } = useYouTube();
   const playerState = usePlayerStore();
   const intervalRef = useRef<NodeJS.Timeout>(null);
   
@@ -95,6 +95,14 @@ export function usePlayer() {
       navigator.mediaSession.setActionHandler('nexttrack', () => playerState.next());
     }
   }, [playerState.currentTrack]);
+
+  // Pre-load next track
+  useEffect(() => {
+    if (playerReady && playerState.queue.length > 0) {
+      const nextTrack = playerState.queue[0];
+      cueNext(nextTrack.id);
+    }
+  }, [playerReady, playerState.queue, playerState.currentTrack, cueNext]);
 
   return { seekTo };
 }

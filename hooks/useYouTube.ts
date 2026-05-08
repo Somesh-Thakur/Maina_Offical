@@ -107,6 +107,14 @@ export function useYouTube() {
     }
   };
 
+  const cueNext = (videoId: string) => {
+    if (!playerReady) return;
+    const inactivePlayer = getInactivePlayer();
+    if (inactivePlayer && typeof inactivePlayer.cueVideoById === 'function') {
+      inactivePlayer.cueVideoById(videoId);
+    }
+  };
+
   const pause = () => {
     if (!playerReady) return;
     getActivePlayer()?.pauseVideo();
@@ -148,6 +156,7 @@ export function useYouTube() {
     pause,
     resume,
     seekTo,
+    cueNext,
     setVolume,
     setPlaybackRate,
     getCurrentTime,

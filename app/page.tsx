@@ -33,7 +33,7 @@ export default function Home() {
     <div className="p-6 md:p-10 pt-20 md:pt-10 max-w-7xl mx-auto flex flex-col gap-12">
       <header>
         <h1 className="text-4xl md:text-5xl font-display font-bold text-white mb-2 tracking-tight">
-          Good evening
+          Welcome
         </h1>
       </header>
 

@@ -9,6 +9,8 @@ import { LyricsPanel } from "@/components/player/LyricsPanel";
 import { QueuePanel } from "@/components/player/QueuePanel";
 import { GlobalModals } from "@/components/ui/GlobalModals";
 import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
+import { AppInitializer } from "@/components/layout/AppInitializer";
+import { WelcomeScreen } from "@/components/ui/WelcomeScreen";
 
 export const metadata: Metadata = {
   title: "Maina",
@@ -42,6 +44,8 @@ export default function RootLayout({
         <MobileNav />
         <GlobalModals />
         <DisclaimerModal />
+        <AppInitializer />
+        <WelcomeScreen />
         
         {/* YouTube IFrame API */}
         <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />
