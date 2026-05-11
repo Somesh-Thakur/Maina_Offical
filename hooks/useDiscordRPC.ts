@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
 
-// Extend window type for global player state bridge
+// Extend window type for Rust-side polling fallback
 declare global {
   interface Window {
     __MAINA_PLAYER__: {
@@ -16,13 +16,16 @@ declare global {
  * useDiscordRPC — Bridges the Maina player state to the Tauri Rust backend
  * for Discord Rich Presence updates.
  *
- * Uses window.__TAURI__.core.invoke() which is injected by Tauri when
- * `withGlobalTauri: true` is set in tauri.conf.json.
- * This works even when loading from an external URL (Vercel) because Tauri
- * injects the global BEFORE the page loads.
- *
- * COMPLETELY SAFE in browser — all calls are no-ops if __TAURI__ isn't present.
+ * Uses @tauri-apps/api/core invoke() — the proper IPC package.
+ * Falls back to window.__MAINA_PLAYER__ global for Rust-side polling.
+ * Completely safe in browser — all calls are guarded by isTauri() check.
  */
+
+/** True only when running inside the Tauri desktop app */
+function isTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
 export function useDiscordRPC() {
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const isPlaying    = usePlayerStore(state => state.isPlaying);
@@ -32,36 +35,38 @@ export function useDiscordRPC() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // ── Path 1: Always expose state globally so Rust polling can read it ──
+    // ── Always expose state for Rust-side polling fallback ───────────
     window.__MAINA_PLAYER__ = currentTrack && isPlaying ? {
-      title:     currentTrack.title   ?? '',
-      artist:    currentTrack.artist  ?? '',
+      title:     currentTrack.title     ?? '',
+      artist:    currentTrack.artist    ?? '',
       thumbnail: currentTrack.thumbnail ?? '',
       isPlaying,
       duration:  duration  ?? 0,
       progress:  progress  ?? 0,
     } : null;
 
-    // ── Path 2: Direct invoke if window.__TAURI__ is injected ────────────
-    const invoke = (window as any).__TAURI__?.core?.invoke as
-      | ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>)
-      | undefined;
-
-    if (!invoke) return; // Path 1 still works via Rust polling
+    // ── Only run IPC inside the Tauri app ────────────────────────────
+    if (!isTauri()) return;
 
     const elapsedSecs  = Math.floor((progress ?? 0) * (duration ?? 0));
     const durationSecs = Math.floor(duration ?? 0);
 
-    if (!currentTrack || !isPlaying) {
-      invoke('clear_discord_status').catch(() => {});
-    } else {
-      invoke('update_discord_status', {
-        title:        currentTrack.title   ?? '',
-        artist:       currentTrack.artist  ?? '',
-        thumbnailUrl: currentTrack.thumbnail ?? '',
-        durationSecs,
-        elapsedSecs,
-      }).catch(() => {});
-    }
+    // Dynamically import the Tauri invoke — avoids SSR issues
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+      if (!currentTrack || !isPlaying) {
+        invoke('clear_discord_status').catch(() => {});
+      } else {
+        invoke('update_discord_status', {
+          title:        currentTrack.title     ?? '',
+          artist:       currentTrack.artist    ?? '',
+          thumbnailUrl: currentTrack.thumbnail ?? '',
+          durationSecs,
+          elapsedSecs,
+        })
+          .then(() => console.debug('[Maina] ✓ Discord RPC sent:', currentTrack.title))
+          .catch(err => console.debug('[Maina] Discord RPC failed:', err));
+      }
+    }).catch(err => console.debug('[Maina] Tauri API import failed:', err));
+
   }, [currentTrack, isPlaying, progress, duration]);
 }
