@@ -4,11 +4,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Monitor, Apple, Download, CheckCircle2, Zap, Music2, Radio, Shield } from 'lucide-react';
 
-// ─── GitHub release URLs — update these after each build ───────────────────
-const RELEASE_BASE = 'https://github.com/Somesh-Thakur/Maina_Offical/releases/latest/download';
-const WINDOWS_URL  = `${RELEASE_BASE}/Maina_1.0.0_x64-setup.exe`;
-const MAC_ARM_URL  = `${RELEASE_BASE}/Maina_1.0.0_aarch64.dmg`;
-const MAC_INTEL_URL= `${RELEASE_BASE}/Maina_1.0.0_x64.dmg`;
+// ─── Download URLs — files live in the main branch root ────────────────────
+const REPO_RAW  = 'https://github.com/Somesh-Thakur/Maina_Offical/raw/main';
+const WINDOWS_EXE_URL = `${REPO_RAW}/Maina_1.0.0_x64-setup.exe`;
+const WINDOWS_MSI_URL = `${REPO_RAW}/Maina_1.0.0_x64_en-US.msi`;
+// macOS builds via GitHub Actions — update these after the CI workflow runs:
+const MAC_ARM_URL   = `${REPO_RAW}/Maina_1.0.0_aarch64.dmg`;
+const MAC_INTEL_URL = `${REPO_RAW}/Maina_1.0.0_x64.dmg`;
 
 const features = [
   { icon: Music2,  title: 'All Songs, One Place',   desc: 'Millions of tracks streamed instantly — no buffering, no ads.' },
@@ -66,25 +68,31 @@ export default function DownloadPage() {
             <DownloadButton
               icon={<Monitor size={20} />}
               label={downloaded ? '✓ Downloading…' : 'Download for Windows'}
-              sublabel="Windows 10 / 11 · 64-bit"
-              onClick={() => handleDownload(WINDOWS_URL)}
+              sublabel="Windows 10 / 11 · 64-bit · NSIS installer"
+              onClick={() => handleDownload(WINDOWS_EXE_URL)}
               primary
             />
           ) : os === 'mac' ? (
             <>
-              <DownloadButton
-                icon={<Apple size={20} />}
-                label="Download for Mac (Apple Silicon)"
-                sublabel="M1, M2, M3 — .dmg"
-                onClick={() => handleDownload(MAC_ARM_URL)}
-                primary
-              />
-              <DownloadButton
-                icon={<Apple size={20} />}
-                label="Download for Mac (Intel)"
-                sublabel="Intel x64 — .dmg"
-                onClick={() => handleDownload(MAC_INTEL_URL)}
-              />
+              <div className="flex flex-col items-center gap-2">
+                <div className="flex gap-3">
+                  <DownloadButton
+                    icon={<Apple size={20} />}
+                    label="Mac (Apple Silicon)"
+                    sublabel="M1 / M2 / M3 — coming soon"
+                    onClick={() => {}}
+                    disabled
+                  />
+                  <DownloadButton
+                    icon={<Apple size={20} />}
+                    label="Mac (Intel)"
+                    sublabel="x64 — coming soon"
+                    onClick={() => {}}
+                    disabled
+                  />
+                </div>
+                <p className="text-xs text-[#666]">macOS builds are in progress. <a href="https://github.com/Somesh-Thakur/Maina_Offical" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">Watch the repo</a> for updates.</p>
+              </div>
             </>
           ) : (
             <>
@@ -92,36 +100,33 @@ export default function DownloadPage() {
                 icon={<Monitor size={20} />}
                 label="Download for Windows"
                 sublabel="Windows 10 / 11 · 64-bit · .exe"
-                onClick={() => handleDownload(WINDOWS_URL)}
+                onClick={() => handleDownload(WINDOWS_EXE_URL)}
                 primary
               />
               <DownloadButton
                 icon={<Apple size={20} />}
-                label="Download for Mac"
-                sublabel="Apple Silicon + Intel · .dmg"
-                onClick={() => handleDownload(MAC_ARM_URL)}
+                label="Mac — Coming Soon"
+                sublabel="macOS build in progress"
+                onClick={() => {}}
+                disabled
               />
             </>
           )}
         </div>
 
-        {/* Other platforms */}
+        {/* Other platforms / alternative formats */}
         <div className="flex flex-wrap justify-center gap-4 text-sm text-[#666]">
           {os !== 'windows' && (
-            <button onClick={() => handleDownload(WINDOWS_URL)} className="hover:text-[#a3a3a3] transition-colors">
-              Windows ↓
+            <button onClick={() => handleDownload(WINDOWS_EXE_URL)} className="hover:text-[#a3a3a3] transition-colors">
+              Windows (.exe) ↓
             </button>
           )}
-          {os !== 'mac' && (
-            <>
-              <button onClick={() => handleDownload(MAC_ARM_URL)} className="hover:text-[#a3a3a3] transition-colors">
-                Mac (Apple Silicon) ↓
-              </button>
-              <button onClick={() => handleDownload(MAC_INTEL_URL)} className="hover:text-[#a3a3a3] transition-colors">
-                Mac (Intel) ↓
-              </button>
-            </>
+          {os === 'windows' && (
+            <button onClick={() => handleDownload(WINDOWS_MSI_URL)} className="hover:text-[#a3a3a3] transition-colors">
+              Windows (.msi alternative) ↓
+            </button>
           )}
+          <span className="text-[#444]">Mac — coming soon</span>
           <Link href="/" className="hover:text-[#a3a3a3] transition-colors">
             Use in browser →
           </Link>
@@ -210,21 +215,25 @@ export default function DownloadPage() {
 // ─── Reusable download button ──────────────────────────────────────────────
 
 function DownloadButton({
-  icon, label, sublabel, onClick, primary,
+  icon, label, sublabel, onClick, primary, disabled,
 }: {
   icon: React.ReactNode;
   label: string;
   sublabel: string;
   onClick: () => void;
   primary?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <button
-      onClick={onClick}
-      className={`flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all active:scale-95
-        ${primary
-          ? 'bg-[var(--accent)] text-white hover:brightness-110 shadow-lg shadow-[var(--accent)]/20'
-          : 'bg-white/8 text-white border border-white/10 hover:bg-white/12'
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`flex items-center gap-3 px-6 py-3.5 rounded-xl font-semibold transition-all
+        ${disabled
+          ? 'bg-white/4 text-[#555] border border-white/5 cursor-not-allowed'
+          : primary
+          ? 'bg-[var(--accent)] text-white hover:brightness-110 active:scale-95 shadow-lg shadow-[var(--accent)]/20'
+          : 'bg-white/8 text-white border border-white/10 hover:bg-white/12 active:scale-95'
         }`}
     >
       {icon}
@@ -232,7 +241,7 @@ function DownloadButton({
         <div className="text-sm leading-tight">{label}</div>
         <div className="text-xs opacity-60 leading-tight">{sublabel}</div>
       </div>
-      <Download size={16} className="ml-1 opacity-70 shrink-0" />
+      {!disabled && <Download size={16} className="ml-1 opacity-70 shrink-0" />}
     </button>
   );
 }
