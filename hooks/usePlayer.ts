@@ -10,15 +10,24 @@ export function usePlayer() {
   
   // Handle play/pause/track changes from store
   const lastTrackId = useRef<string | null>(null);
+  // Prevents auto-playing the last persisted track when the page loads
+  const isInitialMount = useRef(true);
 
   useEffect(() => {
     if (!playerReady) return;
 
     if (playerState.currentTrack?.id !== lastTrackId.current) {
-      // Track changed
+      // Track changed — but don't auto-play on initial hydration from localStorage
+      if (isInitialMount.current) {
+        // First time playerReady fires: sync lastTrackId but do NOT call play()
+        lastTrackId.current = playerState.currentTrack?.id ?? null;
+        isInitialMount.current = false;
+        // Ensure store thinks we're paused on boot
+        if (playerState.isPlaying) playerState.pause();
+        return;
+      }
       if (playerState.currentTrack) {
-        // Crossfade duration can be fetched from settings later
-        play(playerState.currentTrack.id, 0); 
+        play(playerState.currentTrack.id, 0);
         lastTrackId.current = playerState.currentTrack.id;
       }
     } else {

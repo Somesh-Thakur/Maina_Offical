@@ -2,14 +2,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useModalStore } from '@/store/modalStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { PlaylistSelectionModal } from './PlaylistSelectionModal';
 
 export function GlobalModals() {
-  const { promptConfig, confirmConfig, closePrompt, closeConfirm } = useModalStore();
+  const { promptConfig, confirmConfig, closePrompt, closeConfirm, playlistModalTrack, closePlaylistModal } = useModalStore();
 
   return (
     <>
       <PromptModal config={promptConfig} onClose={closePrompt} />
       <ConfirmModal config={confirmConfig} onClose={closeConfirm} />
+      {playlistModalTrack && (
+        <PlaylistSelectionModal
+          isOpen={true}
+          onClose={closePlaylistModal}
+          track={playlistModalTrack}
+        />
+      )}
     </>
   );
 }

@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Mic2, Maximize2, Heart } from 'lucide-react';
 import { usePlayer } from '@/hooks/usePlayer';
 import { useTheme } from '@/hooks/useTheme';
@@ -10,6 +10,7 @@ import { IconButton } from '@/components/ui/IconButton';
 import { VolumeControl } from './VolumeControl';
 import { Slider } from '@/components/ui/Slider';
 import { PlaylistSelectionModal } from '@/components/ui/PlaylistSelectionModal';
+import { useModalStore } from '@/store/modalStore';
 import gsap from 'gsap';
 import { PlusCircle } from 'lucide-react';
 
@@ -39,7 +40,7 @@ export default function PlayerBar() {
   const toggleLike = useLibraryStore(state => state.toggleLike);
   const isLiked = useLibraryStore(state => currentTrack ? state.isLiked(currentTrack.id) : false);
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const showPlaylistModal = useModalStore(state => state.showPlaylistModal);
 
   const playBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -119,10 +120,10 @@ export default function PlayerBar() {
                 onClick={() => toggleLike(currentTrack)} 
                 isActive={isLiked}
               />
-              <IconButton 
-                icon={PlusCircle} 
-                size="sm" 
-                onClick={() => setModalOpen(true)} 
+              <IconButton
+                icon={PlusCircle}
+                size="sm"
+                onClick={() => currentTrack && showPlaylistModal(currentTrack)}
               />
             </div>
           </>
@@ -208,13 +209,6 @@ export default function PlayerBar() {
         />
       </div>
 
-      {currentTrack && (
-        <PlaylistSelectionModal 
-          isOpen={modalOpen}
-          onClose={() => setModalOpen(false)}
-          track={currentTrack}
-        />
-      )}
     </div>
   );
 }
