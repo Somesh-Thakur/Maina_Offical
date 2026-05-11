@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, Plus, Trash2, ListPlus } from 'lucide-react';
+import { MoreHorizontal, Plus, Trash2, ListPlus, Zap } from 'lucide-react';
 import { Track } from '@/lib/db';
 import { useLibraryStore } from '@/store/libraryStore';
 import { usePlayerStore } from '@/store/playerStore';
+import { useSpeedPlayStore } from '@/store/speedPlayStore';
 import { PlaylistSelectionModal } from './PlaylistSelectionModal';
 
 interface TrackContextMenuProps {
@@ -17,6 +18,8 @@ export function TrackContextMenu({ track, playlistId }: TrackContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const removeTrackFromPlaylist = useLibraryStore(state => state.removeTrackFromPlaylist);
   const addToQueue = usePlayerStore(state => state.addToQueue);
+  const { pinTrack, unpinTrack, isTrackPinned } = useSpeedPlayStore();
+  const isPinned = isTrackPinned(track.id);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -71,6 +74,18 @@ export function TrackContextMenu({ track, playlistId }: TrackContextMenuProps) {
           >
             <ListPlus size={16} />
             <span>Add to Queue</span>
+          </button>
+          
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              isPinned ? unpinTrack(track.id) : pinTrack(track);
+            }}
+            className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 flex items-center gap-2"
+          >
+            <Zap size={16} className={isPinned ? 'fill-[var(--accent)] text-[var(--accent)]' : ''} />
+            <span>{isPinned ? 'Unpin from Speed Play' : 'Pin to Speed Play'}</span>
           </button>
           
           {playlistId && (
