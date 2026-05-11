@@ -4,10 +4,14 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:   # ← allows manual trigger from Actions tab
+  workflow_dispatch:   # allows manual trigger from Actions tab
 
 permissions:
   contents: write
+
+# ─── Shared setup steps (used in all build jobs) ─────────────────────────────
+# Note: GitHub Actions doesn't support YAML anchors, so steps are repeated.
+# Kept minimal to avoid drift.
 
 jobs:
   # ────────────────────────────────────────────────────────────────
@@ -24,7 +28,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Rust
+      - name: Install Rust + aarch64 target
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin
@@ -34,11 +38,17 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Install Tauri CLI
+      - name: Install Tauri CLI deps
         run: npm install
         working-directory: desktop
 
-      - name: Build (aarch64)
+      # Tauri requires frontendDist to exist even when the window loads a URL
+      - name: Create dist placeholder
+        run: |
+          mkdir -p desktop/dist
+          echo '<html><body></body></html>' > desktop/dist/index.html
+
+      - name: Build (aarch64-apple-darwin)
         run: npx @tauri-apps/cli build --target aarch64-apple-darwin
         working-directory: desktop
         env:
@@ -54,7 +64,7 @@ jobs:
   # ────────────────────────────────────────────────────────────────
   build-macos-intel:
     name: macOS · Intel x64
-    runs-on: macos-13   # last Intel runner GitHub offers
+    runs-on: macos-13   # last Intel GitHub-hosted runner
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +73,7 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Rust
+      - name: Install Rust + x86_64 target
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-apple-darwin
@@ -73,11 +83,16 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Install Tauri CLI
+      - name: Install Tauri CLI deps
         run: npm install
         working-directory: desktop
 
-      - name: Build (x86_64)
+      - name: Create dist placeholder
+        run: |
+          mkdir -p desktop/dist
+          echo '<html><body></body></html>' > desktop/dist/index.html
+
+      - name: Build (x86_64-apple-darwin)
         run: npx @tauri-apps/cli build --target x86_64-apple-darwin
         working-directory: desktop
         env:
@@ -110,9 +125,15 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
 
-      - name: Install Tauri CLI
+      - name: Install Tauri CLI deps
         run: npm install
         working-directory: desktop
+
+      - name: Create dist placeholder
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path desktop/dist | Out-Null
+          Set-Content -Path desktop/dist/index.html -Value '<html><body></body></html>'
 
       - name: Build
         run: npx @tauri-apps/cli build
@@ -161,9 +182,9 @@ jobs:
             | macOS Apple Silicon | `Maina_*_aarch64.dmg` | M1 / M2 / M3 |
             | macOS Intel | `Maina_*_x64.dmg` | Intel Macs |
 
-            > **macOS note:** The app is not Apple-signed. Right-click → Open to bypass Gatekeeper on first launch.
+            > **macOS:** Not Apple-signed — right-click → Open on first launch to bypass Gatekeeper.
 
-            🌐 **[maina-offical.vercel.app](https://maina-offical.vercel.app)**
+            🌐 [maina-offical.vercel.app](https://maina-offical.vercel.app)
           files: artifacts/**/*
           draft: false
           prerelease: false
