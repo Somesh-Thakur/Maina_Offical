@@ -5,6 +5,7 @@ import { Play, Plus, Heart, MoreHorizontal } from 'lucide-react';
 import { usePlayerStore } from '@/store/playerStore';
 import { useLibraryStore } from '@/store/libraryStore';
 import { TrackContextMenu } from '@/components/ui/TrackContextMenu';
+import { useContextMenu } from '@/components/ui/GlobalContextMenu';
 
 interface TrackRowProps {
   track: Track;
@@ -18,6 +19,7 @@ export function TrackRow({ track, index, playlistId }: TrackRowProps) {
   const isPlaying = usePlayerStore(state => state.isPlaying);
   const toggleLike = useLibraryStore(state => state.toggleLike);
   const isLiked = useLibraryStore(state => state.isLiked(track.id));
+  const { openMenu } = useContextMenu();
 
   const isCurrentTrack = currentTrack?.id === track.id;
 
@@ -34,6 +36,7 @@ export function TrackRow({ track, index, playlistId }: TrackRowProps) {
         ${isCurrentTrack ? 'bg-white/5 border-[var(--accent)]' : 'bg-transparent hover:bg-white/5 border-transparent'}
       `}
       onDoubleClick={() => play(track)}
+      onContextMenu={(e) => openMenu(e, track, playlistId)}
     >
       {/* Number / Play Icon */}
       <div className="w-6 text-center shrink-0">

@@ -12,6 +12,7 @@ import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
 import { AppInitializer } from "@/components/layout/AppInitializer";
 import { WelcomeScreen } from "@/components/ui/WelcomeScreen";
 import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
+import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
 
 export const metadata: Metadata = {
   title: "Maina",
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className={`antialiased h-screen overflow-hidden flex flex-col md:flex-row text-[var(--text-primary)]`}>
         {/* Window chrome for Tauri desktop app — invisible in browser */}
         <TauriTitleBar />
+        <GlobalContextMenuProvider>
         <Sidebar />
         <main className="flex-1 overflow-y-auto pb-[80px] relative no-scrollbar md:ml-[240px]">
           {children}
@@ -50,6 +52,7 @@ export default function RootLayout({
         <DisclaimerModal />
         <AppInitializer />
         <WelcomeScreen />
+        </GlobalContextMenuProvider>
         
         {/* YouTube IFrame API */}
         <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />

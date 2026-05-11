@@ -11,20 +11,19 @@ export function TauriTitleBar() {
   const [isTauri, setIsTauri] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
+  // Define getWin BEFORE useEffect that uses it
+  const getWin = () => (window as any).__TAURI__?.window?.getCurrentWindow?.();
+
   useEffect(() => {
     const tauri = !!(typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window);
     setIsTauri(tauri);
 
     if (tauri) {
-      // Track maximize state
-      const win = getWin();
-      win?.isMaximized?.().then((max: boolean) => setIsMaximized(max));
+      getWin()?.isMaximized?.().then((max: boolean) => setIsMaximized(max));
     }
   }, []);
 
   if (!isTauri) return null;
-
-  const getWin = () => (window as any).__TAURI__?.window?.getCurrentWindow?.();
 
   const handleMinimize = () => getWin()?.minimize();
   const handleMaximize = () => {
@@ -66,15 +65,20 @@ export function TauriTitleBar() {
           display: 'flex',
           alignItems: 'center',
           gap: '7px',
-          opacity: 0.6,
+          opacity: 0.75,
           fontSize: '12px',
           fontWeight: 600,
           letterSpacing: '0.08em',
           color: '#fff',
-          pointerEvents: 'none', // let drag pass through
+          pointerEvents: 'none',
         }}
       >
-        <span style={{ fontSize: '14px' }}>🎵</span>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/maina-logo.png"
+          alt="Maina"
+          style={{ width: '20px', height: '20px', objectFit: 'contain', borderRadius: '4px' }}
+        />
         MAINA
       </div>
 

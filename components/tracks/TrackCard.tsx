@@ -6,6 +6,7 @@ import { usePlayerStore } from '@/store/playerStore';
 import { useLibraryStore } from '@/store/libraryStore';
 import { PlaylistSelectionModal } from '@/components/ui/PlaylistSelectionModal';
 import { useState } from 'react';
+import { useContextMenu } from '@/components/ui/GlobalContextMenu';
 
 interface TrackCardProps {
   track: Track;
@@ -17,10 +18,14 @@ export function TrackCard({ track }: TrackCardProps) {
   const toggleLike = useLibraryStore(state => state.toggleLike);
   const isLiked = useLibraryStore(state => state.isLiked(track.id));
   const [modalOpen, setModalOpen] = useState(false);
+  const { openMenu } = useContextMenu();
 
   return (
     <>
-      <div className="w-40 md:w-48 group relative flex flex-col gap-3 p-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-all duration-300">
+      <div
+        className="w-40 md:w-48 group relative flex flex-col gap-3 p-3 rounded-xl bg-[var(--surface)] hover:bg-[var(--surface-hover)] border border-[var(--border)] hover:border-[var(--border-hover)] transition-all duration-300"
+        onContextMenu={(e) => openMenu(e, track)}
+      >
       <div className="relative aspect-square w-full rounded-md overflow-hidden shadow-md">
         <img src={track.thumbnail} alt={track.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         
