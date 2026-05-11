@@ -72,6 +72,23 @@ export default function Sidebar() {
           ))}
         </ul>
       </div>
+
+      {/* Download app link — shown only in browser, hidden inside Tauri */}
+      {typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window) && (
+        <div className="mt-auto pt-4 border-t border-white/8">
+          <Link
+            href="/download"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors group"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/maina-logo.png" alt="" className="w-6 h-6 object-contain rounded" />
+            <div>
+              <div className="text-xs font-semibold text-[var(--accent)]">Get the Desktop App</div>
+              <div className="text-[10px] text-[#a3a3a3]">Discord RPC &amp; more</div>
+            </div>
+          </Link>
+        </div>
+      )}
     </aside>
   );
 }
