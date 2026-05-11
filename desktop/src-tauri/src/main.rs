@@ -160,7 +160,36 @@ fn main() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(discord_state)
         .setup(|app| {
-            // ── System Tray ──────────────────────────────────────────
+            // ── Rust-side Discord RPC polling (guaranteed fallback) ───────
+            // Reads window.__MAINA_PLAYER__ every 10 s via eval().
+            // Works even if window.__TAURI__ IPC injection is blocked
+            // by Vercel's CSP headers, because eval() runs at the
+            // WebView2 engine level and bypasses page-level CSP.
+            let app_handle = app.handle().clone();
+            std::thread::spawn(move || {
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(10));
+                    if let Some(win) = app_handle.get_webview_window("main") {
+                        let script = r#"
+(function() {
+  var s = window.__MAINA_PLAYER__;
+  if (!s || !s.isPlaying || !s.title) return;
+  var inv = window.__TAURI__?.core?.invoke;
+  if (!inv) return;
+  inv('update_discord_status', {
+    title:        s.title     || '',
+    artist:       s.artist    || '',
+    thumbnailUrl: s.thumbnail || '',
+    durationSecs: Math.floor(s.duration || 0),
+    elapsedSecs:  Math.floor((s.progress || 0) * (s.duration || 0)),
+  }).catch(function(){});
+})();
+"#;
+                        let _ = win.eval(script);
+                    }
+                }
+            });
+
             let show_item = MenuItem::with_id(app, "show", "Show Maina", true, None::<&str>)?;
             let playpause_item =
                 MenuItem::with_id(app, "playpause", "⏯  Play / Pause", true, None::<&str>)?;

@@ -2,6 +2,16 @@
 import { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
 
+// Extend window type for global player state bridge
+declare global {
+  interface Window {
+    __MAINA_PLAYER__: {
+      title: string; artist: string; thumbnail: string;
+      isPlaying: boolean; duration: number; progress: number;
+    } | null;
+  }
+}
+
 /**
  * useDiscordRPC — Bridges the Maina player state to the Tauri Rust backend
  * for Discord Rich Presence updates.
@@ -15,54 +25,43 @@ import { usePlayerStore } from '@/store/playerStore';
  */
 export function useDiscordRPC() {
   const currentTrack = usePlayerStore(state => state.currentTrack);
-  const isPlaying = usePlayerStore(state => state.isPlaying);
-  const progress = usePlayerStore(state => state.progress);
-  const duration = usePlayerStore(state => state.duration);
-  const lastTrackIdRef = useRef<string | null>(null);
+  const isPlaying    = usePlayerStore(state => state.isPlaying);
+  const progress     = usePlayerStore(state => state.progress);
+  const duration     = usePlayerStore(state => state.duration);
 
   useEffect(() => {
-    // ── Guard: Only run inside Tauri desktop app ──────────────────
     if (typeof window === 'undefined') return;
 
-    // Tauri injects window.__TAURI__.core.invoke when withGlobalTauri: true
-    // We use this global directly — no npm package needed on the Vercel bundle
+    // ── Path 1: Always expose state globally so Rust polling can read it ──
+    window.__MAINA_PLAYER__ = currentTrack && isPlaying ? {
+      title:     currentTrack.title   ?? '',
+      artist:    currentTrack.artist  ?? '',
+      thumbnail: currentTrack.thumbnail ?? '',
+      isPlaying,
+      duration:  duration  ?? 0,
+      progress:  progress  ?? 0,
+    } : null;
+
+    // ── Path 2: Direct invoke if window.__TAURI__ is injected ────────────
     const invoke = (window as any).__TAURI__?.core?.invoke as
       | ((cmd: string, args?: Record<string, unknown>) => Promise<unknown>)
       | undefined;
 
-    if (!invoke) return; // Not in Tauri — silent no-op
+    if (!invoke) return; // Path 1 still works via Rust polling
 
-    async function syncDiscord() {
-      try {
-        if (!currentTrack || !isPlaying) {
-          // Paused or no track → clear Discord status
-          await invoke!('clear_discord_status');
-          return;
-        }
+    const elapsedSecs  = Math.floor((progress ?? 0) * (duration ?? 0));
+    const durationSecs = Math.floor(duration ?? 0);
 
-        // Track changed → update reference
-        if (currentTrack.id !== lastTrackIdRef.current) {
-          lastTrackIdRef.current = currentTrack.id;
-        }
-
-        const elapsedSecs = Math.floor(progress * (duration || 0));
-        const durationSecs = Math.floor(duration || 0);
-
-        await invoke!('update_discord_status', {
-          title: currentTrack.title,
-          artist: currentTrack.artist,
-          thumbnailUrl: currentTrack.thumbnail ?? '',
-          durationSecs,
-          elapsedSecs,
-        });
-
-        console.debug('[Maina] Discord RPC updated:', currentTrack.title);
-      } catch (err) {
-        // Discord may not be running — log quietly and carry on
-        console.debug('[Maina] Discord RPC update skipped:', err);
-      }
+    if (!currentTrack || !isPlaying) {
+      invoke('clear_discord_status').catch(() => {});
+    } else {
+      invoke('update_discord_status', {
+        title:        currentTrack.title   ?? '',
+        artist:       currentTrack.artist  ?? '',
+        thumbnailUrl: currentTrack.thumbnail ?? '',
+        durationSecs,
+        elapsedSecs,
+      }).catch(() => {});
     }
-
-    syncDiscord();
   }, [currentTrack, isPlaying, progress, duration]);
 }
