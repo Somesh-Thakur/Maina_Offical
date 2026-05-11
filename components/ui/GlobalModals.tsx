@@ -3,9 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useModalStore } from '@/store/modalStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PlaylistSelectionModal } from './PlaylistSelectionModal';
+import { KeyboardShortcutsOverlay } from './KeyboardShortcutsOverlay';
+import { subscribeToShortcutsOverlay, closeShortcutsOverlay } from '@/hooks/useKeyboardShortcuts';
 
 export function GlobalModals() {
   const { promptConfig, confirmConfig, closePrompt, closeConfirm, playlistModalTrack, closePlaylistModal } = useModalStore();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  useEffect(() => { return subscribeToShortcutsOverlay(setShortcutsOpen); }, []);
 
   return (
     <>
@@ -18,6 +23,7 @@ export function GlobalModals() {
           track={playlistModalTrack}
         />
       )}
+      <KeyboardShortcutsOverlay isOpen={shortcutsOpen} onClose={closeShortcutsOverlay} />
     </>
   );
 }
