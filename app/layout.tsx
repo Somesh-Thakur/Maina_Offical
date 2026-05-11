@@ -11,6 +11,7 @@ import { GlobalModals } from "@/components/ui/GlobalModals";
 import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
 import { AppInitializer } from "@/components/layout/AppInitializer";
 import { WelcomeScreen } from "@/components/ui/WelcomeScreen";
+import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
 
 export const metadata: Metadata = {
   title: "Maina",
@@ -31,6 +32,8 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icon.svg" />
       </head>
       <body className={`antialiased h-screen overflow-hidden flex flex-col md:flex-row text-[var(--text-primary)]`}>
+        {/* Window chrome for Tauri desktop app — invisible in browser */}
+        <TauriTitleBar />
         <Sidebar />
         <main className="flex-1 overflow-y-auto pb-[80px] relative no-scrollbar md:ml-[240px]">
           {children}
