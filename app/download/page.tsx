@@ -5,12 +5,11 @@ import Link from 'next/link';
 import { Monitor, Apple, Download, CheckCircle2, Zap, Music2, Radio, Shield } from 'lucide-react';
 
 // ─── Download URLs — files live in the main branch root ────────────────────
-const REPO_RAW  = 'https://github.com/Somesh-Thakur/Maina_Offical/raw/main';
+const REPO_RAW        = 'https://github.com/Somesh-Thakur/Maina_Offical/raw/main';
 const WINDOWS_EXE_URL = `${REPO_RAW}/Maina_1.0.0_x64-setup.exe`;
 const WINDOWS_MSI_URL = `${REPO_RAW}/Maina_1.0.0_x64_en-US.msi`;
-// macOS builds via GitHub Actions — update these after the CI workflow runs:
-const MAC_ARM_URL   = `${REPO_RAW}/Maina_1.0.0_aarch64.dmg`;
-const MAC_INTEL_URL = `${REPO_RAW}/Maina_1.0.0_x64.dmg`;
+const MAC_ARM_URL     = `${REPO_RAW}/Maina_1.0.0_aarch64.dmg`;  // ✅ live
+const MAC_INTEL_URL   = `${REPO_RAW}/Maina_1.0.0_x64.dmg`;      // 🔜 not built yet
 
 const features = [
   { icon: Music2,  title: 'All Songs, One Place',   desc: 'Millions of tracks streamed instantly — no buffering, no ads.' },
@@ -78,10 +77,10 @@ export default function DownloadPage() {
                 <div className="flex gap-3">
                   <DownloadButton
                     icon={<Apple size={20} />}
-                    label="Mac (Apple Silicon)"
-                    sublabel="M1 / M2 / M3 — coming soon"
-                    onClick={() => {}}
-                    disabled
+                    label={downloaded ? '✓ Downloading…' : 'Mac (Apple Silicon)'}
+                    sublabel="M1 / M2 / M3 — .dmg · 6.1 MB"
+                    onClick={() => handleDownload(MAC_ARM_URL)}
+                    primary
                   />
                   <DownloadButton
                     icon={<Apple size={20} />}
@@ -91,7 +90,7 @@ export default function DownloadPage() {
                     disabled
                   />
                 </div>
-                <p className="text-xs text-[#666]">macOS builds are in progress. <a href="https://github.com/Somesh-Thakur/Maina_Offical" target="_blank" rel="noreferrer" className="text-[var(--accent)] hover:underline">Watch the repo</a> for updates.</p>
+                <p className="text-xs text-[#666]">Not Apple-signed — right-click → Open on first launch.</p>
               </div>
             </>
           ) : (
@@ -105,10 +104,9 @@ export default function DownloadPage() {
               />
               <DownloadButton
                 icon={<Apple size={20} />}
-                label="Mac — Coming Soon"
-                sublabel="macOS build in progress"
-                onClick={() => {}}
-                disabled
+                label="Mac (Apple Silicon)"
+                sublabel="M1 / M2 / M3 · .dmg · 6.1 MB"
+                onClick={() => handleDownload(MAC_ARM_URL)}
               />
             </>
           )}

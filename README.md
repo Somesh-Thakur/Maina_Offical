@@ -52,8 +52,8 @@ The Maina desktop app wraps the web experience in a **native frameless window** 
 |---|---|---|
 | **Windows 10/11** (Recommended) | [Maina_1.0.0_x64-setup.exe](https://github.com/Somesh-Thakur/Maina_Offical/raw/main/Maina_1.0.0_x64-setup.exe) | NSIS installer, 1.9 MB |
 | **Windows 10/11** (Alternative) | [Maina_1.0.0_x64_en-US.msi](https://github.com/Somesh-Thakur/Maina_Offical/raw/main/Maina_1.0.0_x64_en-US.msi) | MSI installer, 2.7 MB |
-| **macOS** (Apple Silicon) | 🔜 Coming Soon | GitHub Actions CI in progress |
-| **macOS** (Intel) | 🔜 Coming Soon | GitHub Actions CI in progress |
+| **macOS** (Apple Silicon) | [Maina_1.0.0_aarch64.dmg](https://github.com/Somesh-Thakur/Maina_Offical/raw/main/Maina_1.0.0_aarch64.dmg) | M1 / M2 / M3, 6.1 MB |
+| **macOS** (Intel) | 🔜 Coming Soon | CI build in progress |
 
 > 💡 Visit **[maina-offical.vercel.app/download](https://maina-offical.vercel.app/download)** for the interactive download page.
 
