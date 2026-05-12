@@ -1,8 +1,15 @@
 // Maina Desktop App — Tauri v2
-// Discord RPC + System Tray + Media Keys
+// Discord RPC via local HTTP server (port 7463) + System Tray + Media Keys
+//
+// HOW IT WORKS:
+//   The web frontend (both in-app WebView AND the regular browser) POSTs
+//   player state to http://127.0.0.1:7463/rpc.
+//   This Rust server receives it and updates Discord Rich Presence.
+//   This approach is 100% reliable — no Tauri IPC injection needed.
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::io::Read;
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -40,7 +47,6 @@ fn try_connect_discord(client_opt: &mut Option<DiscordIpcClient>) {
     }
 }
 
-/// Truncate a string to max `max_chars` characters (Discord field limits)
 fn truncate(s: &str, max_chars: usize) -> String {
     if s.chars().count() <= max_chars {
         s.to_string()
@@ -51,21 +57,16 @@ fn truncate(s: &str, max_chars: usize) -> String {
     }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Tauri Commands
-// ─────────────────────────────────────────────────────────────
-
-#[tauri::command]
-fn update_discord_status(
-    state: tauri::State<DiscordRpcState>,
-    title: String,
-    artist: String,
-    thumbnail_url: String,
+/// Core function — update Discord activity from any source (HTTP or Tauri IPC)
+fn do_update_discord(
+    guard: &mut Option<DiscordIpcClient>,
+    title: &str,
+    artist: &str,
+    thumbnail_url: &str,
     duration_secs: u64,
     elapsed_secs: u64,
 ) {
-    let mut guard = state.0.lock().unwrap();
-    try_connect_discord(&mut guard);
+    try_connect_discord(guard);
 
     if let Some(client) = guard.as_mut() {
         let now = SystemTime::now()
@@ -74,22 +75,15 @@ fn update_discord_status(
             .as_secs() as i64;
 
         let start_ts = now - elapsed_secs as i64;
-        let end_ts = if duration_secs > 0 {
-            start_ts + duration_secs as i64
-        } else {
-            0
-        };
+        let end_ts   = if duration_secs > 0 { start_ts + duration_secs as i64 } else { 0 };
 
-        // Keep strings alive for the duration of the Activity builder
-        let title_str = truncate(&title, 128);
-        let artist_str = truncate(&artist, 128);
+        let title_str  = truncate(title, 128);
+        let artist_str = truncate(artist, 128);
 
-        // Use the track thumbnail URL as large image (Discord supports external URLs)
-        // Fall back to uploaded "maina_logo" asset if no thumbnail
         let large_img = if thumbnail_url.is_empty() {
             "maina_logo".to_string()
         } else {
-            thumbnail_url.clone()
+            thumbnail_url.to_string()
         };
 
         let mut timestamps = Timestamps::new().start(start_ts);
@@ -98,20 +92,15 @@ fn update_discord_status(
         }
 
         let activity = Activity::new()
-            // ActivityType::Listening → Discord shows "Listening to Maina"
             .activity_type(ActivityType::Listening)
-            // details = big text = song title
             .details(&title_str)
-            // state = small text = artist name (no "by" prefix)
             .state(&artist_str)
             .assets(
                 Assets::new()
                     .large_image(&large_img)
-                    .large_text(&title_str)
-                    // No small image/text — cleaner look
+                    .large_text(&title_str),
             )
             .timestamps(timestamps)
-            // "Listen on Maina" button — like Spotify's Discord integration
             .buttons(vec![
                 Button::new("Listen on Maina", "https://maina-offical.vercel.app"),
             ]);
@@ -124,16 +113,108 @@ fn update_discord_status(
     }
 }
 
-#[tauri::command]
-fn clear_discord_status(state: tauri::State<DiscordRpcState>) {
-    let mut guard = state.0.lock().unwrap();
+fn do_clear_discord(guard: &mut Option<DiscordIpcClient>) {
     if let Some(client) = guard.as_mut() {
         if let Err(e) = client.clear_activity() {
-            eprintln!("[Maina] Discord RPC clear_activity failed: {e}");
+            eprintln!("[Maina] Discord RPC clear failed: {e}");
             let _ = client.close();
             *guard = None;
         }
     }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Local HTTP RPC Server (port 7463)
+//  Frontend POSTs JSON here — works from WebView AND browser
+// ─────────────────────────────────────────────────────────────
+
+fn start_rpc_http_server(state: Arc<Mutex<Option<DiscordIpcClient>>>) {
+    std::thread::spawn(move || {
+        let server = match tiny_http::Server::http("127.0.0.1:7463") {
+            Ok(s) => {
+                println!("[Maina] ✓ RPC HTTP server listening on http://127.0.0.1:7463");
+                s
+            }
+            Err(e) => {
+                eprintln!("[Maina] RPC server failed to bind: {e}");
+                return;
+            }
+        };
+
+        for mut request in server.incoming_requests() {
+            // CORS preflight
+            let cors_headers: Vec<tiny_http::Header> = vec![
+                tiny_http::Header::from_bytes(
+                    "Access-Control-Allow-Origin".as_bytes(),
+                    "*".as_bytes(),
+                ).unwrap(),
+                tiny_http::Header::from_bytes(
+                    "Access-Control-Allow-Methods".as_bytes(),
+                    "POST, OPTIONS".as_bytes(),
+                ).unwrap(),
+                tiny_http::Header::from_bytes(
+                    "Access-Control-Allow-Headers".as_bytes(),
+                    "Content-Type".as_bytes(),
+                ).unwrap(),
+            ];
+
+            if *request.method() == tiny_http::Method::Options {
+                let resp = tiny_http::Response::empty(200)
+                    .with_headers(cors_headers);
+                let _ = request.respond(resp);
+                continue;
+            }
+
+            // Read body
+            let mut body = String::new();
+            if request.as_reader().read_to_string(&mut body).is_err() {
+                continue;
+            }
+
+            // Parse JSON
+            if let Ok(data) = serde_json::from_str::<serde_json::Value>(&body) {
+                let title        = data["title"].as_str().unwrap_or("").to_string();
+                let artist       = data["artist"].as_str().unwrap_or("").to_string();
+                let thumbnail    = data["thumbnailUrl"].as_str().unwrap_or("").to_string();
+                let duration     = data["durationSecs"].as_u64().unwrap_or(0);
+                let elapsed      = data["elapsedSecs"].as_u64().unwrap_or(0);
+                let clear        = data["clear"].as_bool().unwrap_or(false);
+
+                let mut guard = state.lock().unwrap();
+                if clear || title.is_empty() {
+                    do_clear_discord(&mut guard);
+                } else {
+                    do_update_discord(&mut guard, &title, &artist, &thumbnail, duration, elapsed);
+                }
+            }
+
+            let resp = tiny_http::Response::empty(200).with_headers(cors_headers);
+            let _ = request.respond(resp);
+        }
+    });
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Tauri Commands (kept for backwards compatibility)
+// ─────────────────────────────────────────────────────────────
+
+#[tauri::command]
+fn update_discord_status(
+    state: tauri::State<DiscordRpcState>,
+    title: String,
+    artist: String,
+    thumbnail_url: String,
+    duration_secs: u64,
+    elapsed_secs: u64,
+) {
+    let mut guard = state.0.lock().unwrap();
+    do_update_discord(&mut guard, &title, &artist, &thumbnail_url, duration_secs, elapsed_secs);
+}
+
+#[tauri::command]
+fn clear_discord_status(state: tauri::State<DiscordRpcState>) {
+    let mut guard = state.0.lock().unwrap();
+    do_clear_discord(&mut guard);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -154,49 +235,22 @@ fn dispatch_key(app: &AppHandle, key: &str) {
 // ─────────────────────────────────────────────────────────────
 
 fn main() {
-    let discord_state = DiscordRpcState(Arc::new(Mutex::new(None)));
+    let discord_arc = Arc::new(Mutex::new(None::<DiscordIpcClient>));
+    let discord_state = DiscordRpcState(Arc::clone(&discord_arc));
+
+    // Start the local HTTP RPC server immediately
+    start_rpc_http_server(Arc::clone(&discord_arc));
 
     tauri::Builder::default()
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .manage(discord_state)
         .setup(|app| {
-            // ── Rust-side Discord RPC polling (guaranteed fallback) ───────
-            // Reads window.__MAINA_PLAYER__ every 10 s via eval().
-            // Works even if window.__TAURI__ IPC injection is blocked
-            // by Vercel's CSP headers, because eval() runs at the
-            // WebView2 engine level and bypasses page-level CSP.
-            let app_handle = app.handle().clone();
-            std::thread::spawn(move || {
-                loop {
-                    std::thread::sleep(std::time::Duration::from_secs(10));
-                    if let Some(win) = app_handle.get_webview_window("main") {
-                        let script = r#"
-(function() {
-  var s = window.__MAINA_PLAYER__;
-  if (!s || !s.isPlaying || !s.title) return;
-  var inv = window.__TAURI__?.core?.invoke;
-  if (!inv) return;
-  inv('update_discord_status', {
-    title:        s.title     || '',
-    artist:       s.artist    || '',
-    thumbnailUrl: s.thumbnail || '',
-    durationSecs: Math.floor(s.duration || 0),
-    elapsedSecs:  Math.floor((s.progress || 0) * (s.duration || 0)),
-  }).catch(function(){});
-})();
-"#;
-                        let _ = win.eval(script);
-                    }
-                }
-            });
-
-            let show_item = MenuItem::with_id(app, "show", "Show Maina", true, None::<&str>)?;
-            let playpause_item =
-                MenuItem::with_id(app, "playpause", "⏯  Play / Pause", true, None::<&str>)?;
-            let next_item =
-                MenuItem::with_id(app, "next", "⏭  Next Track", true, None::<&str>)?;
-            let sep = PredefinedMenuItem::separator(app)?;
-            let quit_item = MenuItem::with_id(app, "quit", "Quit Maina", true, None::<&str>)?;
+            // ── System Tray ──────────────────────────────────────────
+            let show_item     = MenuItem::with_id(app, "show",      "Show Maina",      true, None::<&str>)?;
+            let playpause_item= MenuItem::with_id(app, "playpause", "⏯  Play / Pause", true, None::<&str>)?;
+            let next_item     = MenuItem::with_id(app, "next",      "⏭  Next Track",   true, None::<&str>)?;
+            let sep           = PredefinedMenuItem::separator(app)?;
+            let quit_item     = MenuItem::with_id(app, "quit",      "Quit Maina",      true, None::<&str>)?;
 
             let tray_menu = Menu::with_items(
                 app,
@@ -213,13 +267,10 @@ fn main() {
                     move |_tray, event| {
                         let win = app_handle.get_webview_window("main").unwrap();
                         match event.id.as_ref() {
-                            "show" => {
-                                let _ = win.show();
-                                let _ = win.set_focus();
-                            }
+                            "show" => { let _ = win.show(); let _ = win.set_focus(); }
                             "playpause" => dispatch_key(&app_handle, " "),
-                            "next" => dispatch_key(&app_handle, "n"),
-                            "quit" => app_handle.exit(0),
+                            "next"      => dispatch_key(&app_handle, "n"),
+                            "quit"      => app_handle.exit(0),
                             _ => {}
                         }
                     }
@@ -270,6 +321,12 @@ fn main() {
                 eprintln!("[Maina] Media key shortcuts could not be registered: {e}");
             } else {
                 println!("[Maina] ✓ Media keys registered");
+            }
+
+            // ── Open DevTools in debug builds ────────────────────────
+            #[cfg(debug_assertions)]
+            if let Some(win) = app.get_webview_window("main") {
+                win.open_devtools();
             }
 
             println!("[Maina] ✓ App started");

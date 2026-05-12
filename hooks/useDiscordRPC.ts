@@ -1,29 +1,36 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
 
-// Extend window type for Rust-side polling fallback
-declare global {
-  interface Window {
-    __MAINA_PLAYER__: {
-      title: string; artist: string; thumbnail: string;
-      isPlaying: boolean; duration: number; progress: number;
-    } | null;
-  }
-}
-
 /**
- * useDiscordRPC — Bridges the Maina player state to the Tauri Rust backend
- * for Discord Rich Presence updates.
+ * useDiscordRPC
  *
- * Uses @tauri-apps/api/core invoke() — the proper IPC package.
- * Falls back to window.__MAINA_PLAYER__ global for Rust-side polling.
- * Completely safe in browser — all calls are guarded by isTauri() check.
+ * Sends player state to the Maina desktop app's local HTTP server
+ * running on http://127.0.0.1:7463/rpc
+ *
+ * This approach works from BOTH:
+ *   • The Tauri WebView (desktop app loading Vercel)
+ *   • A regular web browser — if the desktop app is open,
+ *     Discord RPC will update automatically!
+ *
+ * If the desktop app is not running, the fetch fails silently.
+ * Zero Tauri IPC needed — no injection, no CSP issues.
  */
 
-/** True only when running inside the Tauri desktop app */
-function isTauri(): boolean {
-  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+const RPC_URL = 'http://127.0.0.1:7463/rpc';
+
+async function postRpc(payload: object): Promise<void> {
+  try {
+    await fetch(RPC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      // Short timeout so it doesn't hang if the app isn't running
+      signal: AbortSignal.timeout(1500),
+    });
+  } catch {
+    // Desktop app not running or port not available — silent no-op
+  }
 }
 
 export function useDiscordRPC() {
@@ -32,41 +39,33 @@ export function useDiscordRPC() {
   const progress     = usePlayerStore(state => state.progress);
   const duration     = usePlayerStore(state => state.duration);
 
+  // Debounce: only send updates every 5 seconds max to avoid spamming
+  const lastSentRef  = useRef<number>(0);
+  const lastTrackRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // ── Always expose state for Rust-side polling fallback ───────────
-    window.__MAINA_PLAYER__ = currentTrack && isPlaying ? {
-      title:     currentTrack.title     ?? '',
-      artist:    currentTrack.artist    ?? '',
-      thumbnail: currentTrack.thumbnail ?? '',
-      isPlaying,
-      duration:  duration  ?? 0,
-      progress:  progress  ?? 0,
-    } : null;
+    const now          = Date.now();
+    const trackChanged = currentTrack?.id !== lastTrackRef.current;
+    const throttled    = now - lastSentRef.current < 5000 && !trackChanged;
 
-    // ── Only run IPC inside the Tauri app ────────────────────────────
-    if (!isTauri()) return;
+    if (throttled) return;
 
-    const elapsedSecs  = Math.floor((progress ?? 0) * (duration ?? 0));
-    const durationSecs = Math.floor(duration ?? 0);
+    lastSentRef.current  = now;
+    lastTrackRef.current = currentTrack?.id ?? null;
 
-    // Dynamically import the Tauri invoke — avoids SSR issues
-    import('@tauri-apps/api/core').then(({ invoke }) => {
-      if (!currentTrack || !isPlaying) {
-        invoke('clear_discord_status').catch(() => {});
-      } else {
-        invoke('update_discord_status', {
-          title:        currentTrack.title     ?? '',
-          artist:       currentTrack.artist    ?? '',
-          thumbnailUrl: currentTrack.thumbnail ?? '',
-          durationSecs,
-          elapsedSecs,
-        })
-          .then(() => console.debug('[Maina] ✓ Discord RPC sent:', currentTrack.title))
-          .catch(err => console.debug('[Maina] Discord RPC failed:', err));
-      }
-    }).catch(err => console.debug('[Maina] Tauri API import failed:', err));
+    if (!currentTrack || !isPlaying) {
+      postRpc({ clear: true });
+      return;
+    }
 
+    postRpc({
+      title:        currentTrack.title     ?? '',
+      artist:       currentTrack.artist    ?? '',
+      thumbnailUrl: currentTrack.thumbnail ?? '',
+      durationSecs: Math.floor(duration  ?? 0),
+      elapsedSecs:  Math.floor((progress ?? 0) * (duration ?? 0)),
+    });
   }, [currentTrack, isPlaying, progress, duration]);
 }
