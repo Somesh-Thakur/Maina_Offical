@@ -9,7 +9,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::io::Read;
+
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -128,8 +128,23 @@ fn do_clear_discord(guard: &mut Option<DiscordIpcClient>) {
 //  Frontend POSTs JSON here — works from WebView AND browser
 // ─────────────────────────────────────────────────────────────
 
+fn cors_response(status: u16) -> tiny_http::Response<std::io::Empty> {
+    tiny_http::Response::empty(status)
+        .with_header(
+            tiny_http::Header::from_bytes("Access-Control-Allow-Origin", "*").unwrap(),
+        )
+        .with_header(
+            tiny_http::Header::from_bytes("Access-Control-Allow-Methods", "POST, OPTIONS").unwrap(),
+        )
+        .with_header(
+            tiny_http::Header::from_bytes("Access-Control-Allow-Headers", "Content-Type").unwrap(),
+        )
+}
+
 fn start_rpc_http_server(state: Arc<Mutex<Option<DiscordIpcClient>>>) {
     std::thread::spawn(move || {
+        use std::io::Read;
+
         let server = match tiny_http::Server::http("127.0.0.1:7463") {
             Ok(s) => {
                 println!("[Maina] ✓ RPC HTTP server listening on http://127.0.0.1:7463");
@@ -143,42 +158,26 @@ fn start_rpc_http_server(state: Arc<Mutex<Option<DiscordIpcClient>>>) {
 
         for mut request in server.incoming_requests() {
             // CORS preflight
-            let cors_headers: Vec<tiny_http::Header> = vec![
-                tiny_http::Header::from_bytes(
-                    "Access-Control-Allow-Origin".as_bytes(),
-                    "*".as_bytes(),
-                ).unwrap(),
-                tiny_http::Header::from_bytes(
-                    "Access-Control-Allow-Methods".as_bytes(),
-                    "POST, OPTIONS".as_bytes(),
-                ).unwrap(),
-                tiny_http::Header::from_bytes(
-                    "Access-Control-Allow-Headers".as_bytes(),
-                    "Content-Type".as_bytes(),
-                ).unwrap(),
-            ];
-
             if *request.method() == tiny_http::Method::Options {
-                let resp = tiny_http::Response::empty(200)
-                    .with_headers(cors_headers);
-                let _ = request.respond(resp);
+                let _ = request.respond(cors_response(200));
                 continue;
             }
 
             // Read body
             let mut body = String::new();
             if request.as_reader().read_to_string(&mut body).is_err() {
+                let _ = request.respond(cors_response(400));
                 continue;
             }
 
             // Parse JSON
             if let Ok(data) = serde_json::from_str::<serde_json::Value>(&body) {
-                let title        = data["title"].as_str().unwrap_or("").to_string();
-                let artist       = data["artist"].as_str().unwrap_or("").to_string();
-                let thumbnail    = data["thumbnailUrl"].as_str().unwrap_or("").to_string();
-                let duration     = data["durationSecs"].as_u64().unwrap_or(0);
-                let elapsed      = data["elapsedSecs"].as_u64().unwrap_or(0);
-                let clear        = data["clear"].as_bool().unwrap_or(false);
+                let title     = data["title"].as_str().unwrap_or("").to_string();
+                let artist    = data["artist"].as_str().unwrap_or("").to_string();
+                let thumbnail = data["thumbnailUrl"].as_str().unwrap_or("").to_string();
+                let duration  = data["durationSecs"].as_u64().unwrap_or(0);
+                let elapsed   = data["elapsedSecs"].as_u64().unwrap_or(0);
+                let clear     = data["clear"].as_bool().unwrap_or(false);
 
                 let mut guard = state.lock().unwrap();
                 if clear || title.is_empty() {
@@ -188,8 +187,7 @@ fn start_rpc_http_server(state: Arc<Mutex<Option<DiscordIpcClient>>>) {
                 }
             }
 
-            let resp = tiny_http::Response::empty(200).with_headers(cors_headers);
-            let _ = request.respond(resp);
+            let _ = request.respond(cors_response(200));
         }
     });
 }
