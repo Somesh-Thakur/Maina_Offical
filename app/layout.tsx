@@ -13,6 +13,7 @@ import { AppInitializer } from "@/components/layout/AppInitializer";
 import { WelcomeScreen } from "@/components/ui/WelcomeScreen";
 import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
 import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
+import { AuthProvider } from "@/components/auth/AuthProvider";
 
 export const metadata: Metadata = {
   title: "Maina",
@@ -39,7 +40,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Maina" />
       </head>
       <body className={`antialiased h-screen overflow-hidden flex flex-col md:flex-row text-[var(--text-primary)]`}>
-        {/* Window chrome for Tauri desktop app — invisible in browser */}
+        <AuthProvider>
         <TauriTitleBar />
         <GlobalContextMenuProvider>
         <Sidebar />
@@ -59,6 +60,7 @@ export default function RootLayout({
         <AppInitializer />
         <WelcomeScreen />
         </GlobalContextMenuProvider>
+        </AuthProvider>
         
         {/* YouTube IFrame API */}
         <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />

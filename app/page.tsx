@@ -7,6 +7,7 @@ import { SpeedPlayBar } from '@/components/ui/SpeedPlayBar';
 import { getTrendingMusic, searchVideos } from '@/lib/youtube';
 import { Track } from '@/lib/db';
 import { usePlayerStore } from '@/store/playerStore';
+import { useUserStore } from '@/store/userStore';
 
 const TRENDING_CACHE_KEY = 'maina_trending_cache';
 const TRENDING_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
@@ -78,11 +79,13 @@ export default function Home() {
   const punjabi = useCachedSection('maina_punjabi', () => searchVideos('punjabi songs 2025', 16));
   const newReleases = useCachedSection('maina_newreleases', () => searchVideos('new music releases 2025', 16));
 
+  const { user } = useUserStore();
+
   return (
     <div className="p-6 md:p-10 pt-20 md:pt-10 max-w-7xl mx-auto flex flex-col gap-12">
       <header className="flex flex-col gap-6">
         <h1 className="text-4xl md:text-5xl font-display font-bold text-white tracking-tight">
-          Welcome
+          {user ? `Welcome, ${user.displayName || user.username}` : 'Welcome'}
         </h1>
         {/* Speed Play — pinned favs */}
         <SpeedPlayBar />

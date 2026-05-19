@@ -71,6 +71,9 @@ export const usePlayerStore = create<PlayerState>()(
         const { currentTrack, history } = get();
         const newHistory = currentTrack ? [...history, currentTrack].slice(-500) : history;
         set({ currentTrack: track, isPlaying: true, history: newHistory, progress: 0, duration: track.duration });
+        
+        // Log to cloud trending history
+        fetch('/api/player/history', { method: 'POST', body: JSON.stringify({ track }) }).catch(console.error);
       },
       pause: () => set({ isPlaying: false }),
       resume: () => set({ isPlaying: !!get().currentTrack }),

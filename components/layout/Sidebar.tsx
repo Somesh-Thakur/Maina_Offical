@@ -1,13 +1,16 @@
 'use client';
 import Link from 'next/link';
-import { Home, Search, Library, Plus } from 'lucide-react';
+import { Home, Search, Library, Plus, User as UserIcon, MessageSquare, LogOut, LogIn, Shield } from 'lucide-react';
 import { useLibrary } from '@/hooks/useLibrary';
 import { usePathname } from 'next/navigation';
 import { useModalStore } from '@/store/modalStore';
+import { useUserStore } from '@/store/userStore';
+import { signOut } from 'next-auth/react';
 
 export default function Sidebar() {
   const { playlists, createPlaylist } = useLibrary();
   const pathname = usePathname();
+  const { user } = useUserStore();
 
   const handleCreatePlaylist = async () => {
     const name = await useModalStore.getState().showPrompt('Enter a name for your new playlist:', 'New Playlist');
@@ -73,12 +76,61 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* Download app link — shown only in browser, hidden inside Tauri */}
-      {typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window) && (
-        <div className="mt-auto pt-4 border-t border-white/8">
+      {/* User & Settings Section */}
+      <div className="mt-auto pt-4 border-t border-white/8 flex flex-col gap-2">
+        {user ? (
+          <>
+            <div className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-xl border border-white/10">
+              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 overflow-hidden text-sm font-bold">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  (user.displayName?.[0] ?? user.username?.[0] ?? '?').toUpperCase()
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate text-white">{user.displayName}</p>
+                <p className="text-[10px] text-white/40 truncate">@{user.username}</p>
+              </div>
+            </div>
+
+            {user.role === 'admin' && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-yellow-400/10 transition-colors"
+              >
+                <Shield size={16} /> Admin Panel
+              </Link>
+            )}
+
+            <Link
+              href="/feedback"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#a3a3a3] hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <MessageSquare size={16} /> Report Bug / Feedback
+            </Link>
+
+            <button
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors text-left"
+            >
+              <LogOut size={16} /> Sign Out
+            </button>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors justify-center"
+          >
+            <LogIn size={16} /> Sign In
+          </Link>
+        )}
+
+        {/* Download app link — shown only in browser, hidden inside Tauri */}
+        {typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window) && (
           <Link
             href="/download"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors group"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors group mt-2"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/maina-logo.png" alt="" className="w-6 h-6 object-contain rounded" />
@@ -87,8 +139,8 @@ export default function Sidebar() {
               <div className="text-[10px] text-[#a3a3a3]">Discord RPC &amp; more</div>
             </div>
           </Link>
-        </div>
-      )}
+        )}
+      </div>
     </aside>
   );
 }

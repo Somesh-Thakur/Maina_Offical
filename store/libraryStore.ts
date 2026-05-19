@@ -46,38 +46,60 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       const trackMap: Record<string, Track> = {};
       allTracks.forEach(t => { trackMap[t.id] = t; });
       
-      // Sort liked songs by date descending or just map
+      // Sort liked songs by date descending
       const likedTracks = likedSongs
         .sort((a, b) => b.likedAt - a.likedAt)
         .map(s => trackMap[s.trackId])
         .filter(Boolean);
 
       set({ playlists, likedSongs, followedArtists, trackMap, likedTracks });
+
+      // Background Cloud Sync (Likes only for now)
+      fetch('/api/library/likes').then(r => r.json()).then(async data => {
+        if (!data.tracks) return;
+        
+        // Save cloud tracks to local DB
+        await db.tracks.bulkPut(data.tracks);
+        
+        // Update local likedSongs from cloud
+        const cloudLikes = data.tracks.map((t: Track) => ({
+          trackId: t.id,
+          likedAt: Date.now() // Approximated since cloud doesn't send liked_at yet
+        }));
+        await db.likedSongs.clear();
+        await db.likedSongs.bulkAdd(cloudLikes);
+
+        // Reload local state
+        const [newLikes, newTracks] = await Promise.all([db.likedSongs.toArray(), db.tracks.toArray()]);
+        const newTrackMap: Record<string, Track> = {};
+        newTracks.forEach(t => { newTrackMap[t.id] = t; });
+        const newLikedTracks = newLikes.sort((a, b) => b.likedAt - a.likedAt).map(s => newTrackMap[s.trackId]).filter(Boolean);
+        
+        set({ likedSongs: newLikes, trackMap: newTrackMap, likedTracks: newLikedTracks });
+      }).catch(console.error);
+
     } catch (e) {
       console.error("Failed to load library", e);
     }
   },
 
   toggleLike: async (track) => {
-    const { likedSongs, trackMap, likedTracks } = get();
-    const existingLike = likedSongs.find(s => s.trackId === track.id);
-    
-    if (existingLike) {
-      await db.likedSongs.delete(track.id);
-      set({ 
-        likedSongs: likedSongs.filter(s => s.trackId !== track.id),
-        likedTracks: likedTracks.filter(t => t.id !== track.id)
-      });
-    } else {
-      await db.tracks.put(track);
-      const newLike: LikedSong = { trackId: track.id, likedAt: Date.now() };
-      await db.likedSongs.put(newLike);
-      
-      set({ 
-        likedSongs: [...likedSongs, newLike],
-        trackMap: { ...trackMap, [track.id]: track },
-        likedTracks: [track, ...likedTracks]
-      });
+  toggleLike: async (track: Track) => {
+    const isLiked = get().isLiked(track.id);
+    try {
+      if (isLiked) {
+        await db.likedSongs.delete(track.id);
+        // Cloud Sync
+        fetch('/api/library/likes', { method: 'DELETE', body: JSON.stringify({ trackId: track.id }) }).catch(console.error);
+      } else {
+        await db.tracks.put(track);
+        await db.likedSongs.put({ trackId: track.id, likedAt: Date.now() });
+        // Cloud Sync
+        fetch('/api/library/likes', { method: 'POST', body: JSON.stringify({ track }) }).catch(console.error);
+      }
+      await get().loadLibrary(); // Reload to update state
+    } catch (e) {
+      console.error("Failed to toggle like", e);
     }
   },
 
