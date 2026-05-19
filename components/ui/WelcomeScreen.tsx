@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronUp, Smartphone } from 'lucide-react';
+import { ChevronUp } from 'lucide-react';
 
 // Stable positions for particles (computed once to avoid hydration issues)
 const PARTICLES = [
@@ -28,11 +28,7 @@ const PARTICLES = [
 ];
 
 function useMobile() {
-  const [isMobile, setIsMobile] = useState(false);
-  useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-  }, []);
-  return isMobile;
+  return false; // Mobile is now fully supported
 }
 
 export function WelcomeScreen() {
@@ -160,22 +156,6 @@ export function WelcomeScreen() {
             >
               Your music. Your world.
             </motion.p>
-
-            {/* Mobile warning */}
-            {isMobile && (
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.2, duration: 0.6 }}
-                className="flex items-start gap-3 bg-yellow-500/10 border border-yellow-500/20 text-yellow-300/80 rounded-xl px-4 py-3 max-w-xs text-left mt-2"
-                onClick={e => e.stopPropagation()}
-              >
-                <Smartphone size={18} className="shrink-0 mt-0.5" />
-                <p className="text-xs leading-relaxed">
-                  Maina is not yet optimized for mobile. We&apos;re working on it — check back soon! For now, enjoy it on desktop.
-                </p>
-              </motion.div>
-            )}
           </div>
 
           {/* Click hint */}
