@@ -150,7 +150,7 @@ CREATE POLICY "shares_own"  ON song_shares FOR ALL USING (
 );
 
 -- ── Trending view ────────────────────────────────────────────
-CREATE OR REPLACE VIEW trending_tracks AS
+CREATE OR REPLACE VIEW trending_tracks WITH (security_invoker = true) AS
 SELECT
   track_id,
   track_data->>'title'     AS title,
@@ -164,7 +164,7 @@ GROUP BY track_id, track_data->>'title', track_data->>'artist', track_data->>'th
 ORDER BY play_count DESC
 LIMIT 50;
 
-CREATE OR REPLACE VIEW trending_artists AS
+CREATE OR REPLACE VIEW trending_artists WITH (security_invoker = true) AS
 SELECT
   track_data->>'artist' AS artist,
   COUNT(*)              AS play_count,
