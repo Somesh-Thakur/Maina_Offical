@@ -82,26 +82,92 @@ export default function PlayerBar() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
+  // ── Swipe-up on mobile to open fullscreen ────────────────────
+  const touchStartY = useRef<number>(0);
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const dy = touchStartY.current - e.changedTouches[0].clientY;
+    if (dy > 40) toggleFullscreen(); // swipe up ≥ 40px
+  };
+
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[80px] bg-white/[0.02] backdrop-blur-xl border-t border-[var(--border)] z-[60] flex items-center justify-between px-4 md:px-6 md:pl-[240px]">
-      
-      {/* Absolute top progress bar for mobile */}
-      <div className="absolute top-0 left-0 right-0 md:hidden h-[2px] bg-[rgba(255,255,255,0.1)]">
-        <div 
-          className="h-full bg-[var(--accent)] transition-all"
+    <div
+      className="fixed bottom-0 left-0 right-0 h-[80px] bg-black/60 backdrop-blur-2xl border-t border-white/[0.06] z-[60] flex items-center justify-between px-4 md:px-6 md:pl-[240px]"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      {/* Progress bar — visible on mobile as thin accent line */}
+      <div className="absolute top-0 left-0 right-0 md:hidden h-[2px] bg-white/10">
+        <div
+          className="h-full bg-[var(--accent)] transition-all duration-200"
           style={{ width: `${progress * 100}%` }}
         />
       </div>
 
-      <div className="flex-1 flex items-center gap-3 overflow-hidden">
+      {/* ── MOBILE LAYOUT ─────────────────────────────────────── */}
+      {/* Left: tap track area to open fullscreen */}
+      <div
+        className="flex md:hidden flex-1 items-center gap-3 overflow-hidden active:opacity-70 transition-opacity cursor-pointer"
+        onClick={toggleFullscreen}
+      >
         {currentTrack ? (
           <>
-            <div 
+            <div className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0">
+              <img
+                src={currentTrack.thumbnail}
+                alt={currentTrack.title}
+                className={`w-full h-full object-cover transition-transform duration-500 ${isPlaying ? 'scale-105' : ''}`}
+              />
+            </div>
+            <div className="flex flex-col overflow-hidden min-w-0">
+              <span className="font-medium text-sm truncate">{currentTrack.title}</span>
+              <span className="text-xs text-[#a3a3a3] truncate">{currentTrack.artist}</span>
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3 opacity-40">
+            <div className="w-11 h-11 bg-white/5 rounded-lg" />
+            <div className="flex flex-col gap-2">
+              <div className="w-24 h-3 bg-white/10 rounded" />
+              <div className="w-16 h-2 bg-white/10 rounded" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Mobile right: play + skip (stop propagation so taps don't open fullscreen) */}
+      <div
+        className="flex md:hidden items-center gap-2 shrink-0"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={togglePlayPause}
+          disabled={!currentTrack}
+          className="w-10 h-10 flex items-center justify-center bg-white text-black rounded-full active:scale-90 transition-transform disabled:opacity-40"
+        >
+          {isPlaying ? <Pause size={20} className="fill-current" /> : <Play size={20} className="fill-current ml-0.5" />}
+        </button>
+        <button
+          onClick={next}
+          disabled={!currentTrack}
+          className="w-10 h-10 flex items-center justify-center text-white/70 active:scale-90 transition-transform disabled:opacity-40"
+        >
+          <SkipForward size={22} />
+        </button>
+      </div>
+
+      {/* ── DESKTOP LAYOUT ────────────────────────────────────── */}
+      <div className="hidden md:flex flex-1 items-center gap-3 overflow-hidden">
+        {currentTrack ? (
+          <>
+            <div
               className="relative w-12 h-12 rounded overflow-hidden shrink-0 cursor-pointer group"
               onClick={toggleFullscreen}
             >
-              <img 
-                src={currentTrack.thumbnail} 
+              <img
+                src={currentTrack.thumbnail}
                 alt={currentTrack.title}
                 className={`w-full h-full object-cover transition-transform duration-500 ${isPlaying ? 'scale-105' : 'scale-100'}`}
               />
@@ -113,18 +179,9 @@ export default function PlayerBar() {
               <span className="font-display font-medium text-sm truncate">{currentTrack.title}</span>
               <span className="text-xs text-[#a3a3a3] truncate">{currentTrack.artist}</span>
             </div>
-            <div className="hidden sm:flex items-center gap-1 ml-2 shrink-0">
-              <IconButton 
-                icon={Heart} 
-                size="sm" 
-                onClick={() => toggleLike(currentTrack)} 
-                isActive={isLiked}
-              />
-              <IconButton
-                icon={PlusCircle}
-                size="sm"
-                onClick={() => currentTrack && showPlaylistModal(currentTrack)}
-              />
+            <div className="flex items-center gap-1 ml-2 shrink-0">
+              <IconButton icon={Heart} size="sm" onClick={() => toggleLike(currentTrack)} isActive={isLiked} />
+              <IconButton icon={PlusCircle} size="sm" onClick={() => currentTrack && showPlaylistModal(currentTrack)} />
             </div>
           </>
         ) : (
@@ -138,77 +195,42 @@ export default function PlayerBar() {
         )}
       </div>
 
-      <div className="flex-1 max-w-xl flex flex-col items-center justify-center gap-1">
+      <div className="hidden md:flex flex-1 max-w-xl flex-col items-center justify-center gap-1">
         <div className="flex items-center gap-4 md:gap-6">
-          <IconButton 
-            icon={Shuffle} 
-            size="sm" 
-            isActive={shuffle} 
-            onClick={toggleShuffle} 
-            className="hidden sm:inline-flex"
-          />
+          <IconButton icon={Shuffle} size="sm" isActive={shuffle} onClick={toggleShuffle} />
           <IconButton icon={SkipBack} size="md" onClick={previous} disabled={!currentTrack} />
-          
-          <button 
+          <button
             ref={playBtnRef}
             onClick={togglePlayPause}
             disabled={!currentTrack}
-            className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
+            className="w-12 h-12 flex items-center justify-center bg-white text-black rounded-full hover:scale-105 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
           >
             {isPlaying ? <Pause size={24} className="fill-current" /> : <Play size={24} className="fill-current ml-1" />}
           </button>
-          
           <IconButton icon={SkipForward} size="md" onClick={next} disabled={!currentTrack} />
-          <IconButton 
-            icon={repeat === 'one' ? Repeat1 : Repeat} 
-            size="sm" 
-            isActive={repeat !== 'off'} 
-            onClick={cycleRepeat} 
-            className="hidden sm:inline-flex"
-          />
+          <IconButton icon={repeat === 'one' ? Repeat1 : Repeat} size="sm" isActive={repeat !== 'off'} onClick={cycleRepeat} />
         </div>
-        
-        <div className="hidden md:flex items-center gap-3 w-full max-w-md">
+        <div className="flex items-center gap-3 w-full max-w-md">
           <span className="text-[10px] font-mono text-[#a3a3a3] w-8 text-right">{formatTime(progress * duration)}</span>
-          <Slider 
-            value={progress * 100} 
+          <Slider
+            value={progress * 100}
             onChange={(val) => {
               const targetSeconds = (val / 100) * duration;
               seek(targetSeconds);
               if (seekTo) seekTo(targetSeconds);
-            }} 
+            }}
             className="flex-1"
           />
           <span className="text-[10px] font-mono text-[#a3a3a3] w-8">{formatTime(duration)}</span>
         </div>
       </div>
 
-      <div className="flex-1 flex items-center justify-end gap-2 md:gap-4">
-        <IconButton 
-          icon={Mic2} 
-          size="sm" 
-          isActive={showLyrics}
-          onClick={toggleLyrics}
-          className="hidden md:inline-flex"
-        />
-        <IconButton 
-          icon={ListMusic} 
-          size="sm" 
-          isActive={showQueue}
-          onClick={toggleQueue}
-          className="hidden md:inline-flex"
-        />
-        <div className="hidden lg:block">
-          <VolumeControl />
-        </div>
-        <IconButton 
-          icon={Maximize2} 
-          size="sm" 
-          onClick={toggleFullscreen} 
-          className="hidden md:inline-flex ml-2"
-        />
+      <div className="hidden md:flex flex-1 items-center justify-end gap-2 md:gap-4">
+        <IconButton icon={Mic2} size="sm" isActive={showLyrics} onClick={toggleLyrics} />
+        <IconButton icon={ListMusic} size="sm" isActive={showQueue} onClick={toggleQueue} />
+        <div className="hidden lg:block"><VolumeControl /></div>
+        <IconButton icon={Maximize2} size="sm" onClick={toggleFullscreen} className="ml-2" />
       </div>
-
     </div>
   );
 }

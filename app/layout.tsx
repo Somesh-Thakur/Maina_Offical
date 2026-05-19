@@ -16,7 +16,8 @@ import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
 
 export const metadata: Metadata = {
   title: "Maina",
-  description: "Premium personal music web application",
+  description: "Premium personal music web application — listen free, no ads.",
+  viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
 };
 
 export default function RootLayout({
@@ -31,13 +32,18 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#0a0a0a" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+        {/* PWA / Mobile */}
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Maina" />
       </head>
       <body className={`antialiased h-screen overflow-hidden flex flex-col md:flex-row text-[var(--text-primary)]`}>
         {/* Window chrome for Tauri desktop app — invisible in browser */}
         <TauriTitleBar />
         <GlobalContextMenuProvider>
         <Sidebar />
-        <main className="flex-1 overflow-y-auto pb-[80px] relative no-scrollbar md:ml-[240px]">
+        <main className="flex-1 overflow-y-auto pb-[152px] md:pb-[80px] relative no-scrollbar md:ml-[240px]">
           {children}
         </main>
         

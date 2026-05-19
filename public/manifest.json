@@ -1,17 +1,40 @@
 {
-  "name": "Maina Music",
+  "name": "Maina — Free Music",
   "short_name": "Maina",
-  "description": "Premium personal music web application",
+  "description": "Premium personal music streaming — listen free, no ads.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "orientation": "portrait-primary",
+  "categories": ["music", "entertainment"],
+  "scope": "/",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Music",
+      "url": "/search",
+      "description": "Search for songs and artists"
+    },
+    {
+      "name": "My Library",
+      "url": "/library",
+      "description": "Your liked songs and playlists"
+    }
+  ],
+  "screenshots": []
 }

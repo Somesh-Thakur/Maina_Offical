@@ -2,17 +2,17 @@
 import { useEffect } from 'react';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useDiscordRPC } from '@/hooks/useDiscordRPC';
+import { useMediaSession } from '@/hooks/useMediaSession';
 
 export function AppInitializer() {
   const loadLibrary = useLibraryStore(state => state.loadLibrary);
 
   useEffect(() => {
-    // Initial load of Dexie DB into Zustand
     loadLibrary();
   }, [loadLibrary]);
 
-  // Activate Discord RPC (only does anything inside the Tauri desktop app)
-  useDiscordRPC();
+  useDiscordRPC();      // Discord Rich Presence (desktop app / web)
+  useMediaSession();    // Lock screen + background play (mobile)
 
   return null;
 }
