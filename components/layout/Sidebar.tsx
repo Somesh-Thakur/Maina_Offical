@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { Home, Search, Library, Plus, User as UserIcon, MessageSquare, LogOut, LogIn, Shield } from 'lucide-react';
+import { Home, Search, Library, Plus, User as UserIcon, MessageSquare, LogOut, LogIn, Shield, Settings } from 'lucide-react';
 import { useLibrary } from '@/hooks/useLibrary';
 import { usePathname } from 'next/navigation';
 import { useModalStore } from '@/store/modalStore';
@@ -109,6 +109,13 @@ export default function Sidebar() {
               className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#a3a3a3] hover:text-white hover:bg-white/5 transition-colors"
             >
               <MessageSquare size={16} /> Report Bug / Feedback
+            </Link>
+
+            <Link
+              href="/settings"
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#a3a3a3] hover:text-white hover:bg-white/5 transition-colors"
+            >
+              <Settings size={16} /> Settings
             </Link>
 
             <button
