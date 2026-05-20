@@ -72,11 +72,32 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const { v5: uuidv5 } = await import('uuid');
       const NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
       const dbId = uuidv5(`${account?.provider}:${account?.providerAccountId}`, NAMESPACE);
-      user.id = dbId; // Store it back on the user object so the JWT callback picks it up
 
-      const { data: existingUser } = await supabase.from('profiles').select('id').eq('id', dbId).single();
-
+      // 1. Try to find existing user by email (if provided) or by ID
+      let existingUser = null;
+      
+      if (user.email) {
+        const { data } = await supabase.from('profiles').select('id').eq('email', user.email).single();
+        if (data) existingUser = data;
+      }
+      
       if (!existingUser) {
+        const { data } = await supabase.from('profiles').select('id').eq('id', dbId).single();
+        if (data) existingUser = data;
+      }
+
+      if (existingUser) {
+        // If we found them (by email or id), use THEIR existing ID so we don't duplicate emails
+        user.id = existingUser.id;
+        
+        // Update their avatar and name since they just logged in
+        await supabase.from('profiles').update({
+          display_name: user.name,
+          avatar_url:   user.image,
+        }).eq('id', existingUser.id);
+      } else {
+        // Only insert if completely new
+        user.id = dbId;
         const { error } = await supabase.from('profiles').insert({
           id:           dbId,
           email:        user.email,
@@ -86,12 +107,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           provider:     account?.provider,
         });
         if (error) console.error('[Maina Auth] insert error:', error.message);
-      } else {
-        // Just update avatar and display name
-        await supabase.from('profiles').update({
-          display_name: user.name,
-          avatar_url:   user.image,
-        }).eq('id', dbId);
       }
 
       return true;
@@ -99,20 +114,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
     // Attach extra fields to the JWT
     async jwt({ token, user, account }) {
+      const supabase = getSupabaseAdmin();
+
       if (user) {
+        let dbId = user.id;
+        
+        // For OAuth, we need to find their actual DB ID because they might have linked accounts via email
         if (account?.provider && account.provider !== 'credentials') {
-          const { v5: uuidv5 } = await import('uuid');
-          const NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
-          token.id = uuidv5(`${account.provider}:${account.providerAccountId}`, NAMESPACE);
-        } else {
-          token.id = user.id;
+          let foundId = null;
+          
+          if (user.email) {
+            const { data } = await supabase.from('profiles').select('id').eq('email', user.email).single();
+            if (data) foundId = data.id;
+          }
+          
+          if (!foundId) {
+            const { v5: uuidv5 } = await import('uuid');
+            const NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
+            foundId = uuidv5(`${account.provider}:${account.providerAccountId}`, NAMESPACE);
+          }
+          
+          dbId = foundId;
         }
+
+        token.id       = dbId;
         token.username = (user as any).username;
         token.role     = (user as any).role;
       }
-      // Fetch role from DB on every session refresh
+
+      // Fetch latest profile info from DB on every session refresh
       if (token.id) {
-        const supabase = getSupabaseAdmin();
         const { data } = await supabase
           .from('profiles')
           .select('role, username, display_name, avatar_url')
