@@ -23,6 +23,7 @@ export default function Sidebar() {
     { name: 'Home', href: '/', icon: Home },
     { name: 'Search', href: '/search', icon: Search },
     { name: 'Library', href: '/library', icon: Library },
+    { name: 'Friends', href: '/friends', icon: UserIcon },
   ];
 
   return (

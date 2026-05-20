@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreHorizontal, Plus, Trash2, ListPlus, Zap } from 'lucide-react';
+import { MoreHorizontal, Plus, Trash2, ListPlus, Zap, Share2, Check } from 'lucide-react';
 import { Track } from '@/lib/db';
 import { useLibraryStore } from '@/store/libraryStore';
 import { usePlayerStore } from '@/store/playerStore';
@@ -15,6 +15,7 @@ interface TrackContextMenuProps {
 export function TrackContextMenu({ track, playlistId }: TrackContextMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const removeTrackFromPlaylist = useLibraryStore(state => state.removeTrackFromPlaylist);
   const addToQueue = usePlayerStore(state => state.addToQueue);
@@ -88,6 +89,21 @@ export function TrackContextMenu({ track, playlistId }: TrackContextMenuProps) {
             <span>{isPinned ? 'Unpin from Speed Play' : 'Pin to Speed Play'}</span>
           </button>
           
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              const url = `${window.location.origin}/share/song?id=${track.id}&title=${encodeURIComponent(track.title)}&artist=${encodeURIComponent(track.artist ?? '')}&thumbnail=${encodeURIComponent(track.thumbnail ?? '')}`;
+              navigator.clipboard.writeText(url);
+              setShareCopied(true);
+              setTimeout(() => setShareCopied(false), 2000);
+            }}
+            className="w-full text-left px-4 py-2 text-sm hover:bg-white/10 flex items-center gap-2"
+          >
+            {shareCopied ? <Check size={16} className="text-green-400" /> : <Share2 size={16} />}
+            <span>{shareCopied ? 'Link copied!' : 'Share Song'}</span>
+          </button>
+
           {playlistId && (
             <button 
               onClick={(e) => {

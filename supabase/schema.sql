@@ -178,3 +178,46 @@ LIMIT 20;
 -- ── Set first admin ──────────────────────────────────────────
 -- Run this AFTER you create your account:
 -- UPDATE profiles SET role = 'admin' WHERE email = 'admin@maina-offical.vercel.app';
+
+-- ── Friendships ──────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS friendships (
+  id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  from_user   UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  to_user     UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  status      TEXT        DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined')),
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE (from_user, to_user)
+);
+
+ALTER TABLE friendships ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can see friendships they're part of
+CREATE POLICY "friendships_own" ON friendships FOR ALL
+  USING (auth.uid()::text = from_user::text OR auth.uid()::text = to_user::text);
+
+CREATE INDEX IF NOT EXISTS idx_friendships_from ON friendships(from_user, status);
+CREATE INDEX IF NOT EXISTS idx_friendships_to   ON friendships(to_user, status);
+
+-- ── Playlist Invites ─────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS playlist_invites (
+  id          UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  playlist_id UUID        REFERENCES playlists(id) ON DELETE CASCADE,
+  created_by  UUID        REFERENCES profiles(id) ON DELETE CASCADE,
+  token       TEXT        UNIQUE NOT NULL DEFAULT encode(gen_random_bytes(24), 'hex'),
+  uses        INTEGER     DEFAULT 0,
+  max_uses    INTEGER     DEFAULT 100,
+  expires_at  TIMESTAMPTZ DEFAULT NOW() + INTERVAL '7 days',
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE playlist_invites ENABLE ROW LEVEL SECURITY;
+
+-- Owner can manage invites; anyone with the token can read (for validation)
+CREATE POLICY "invites_owner_write" ON playlist_invites FOR ALL
+  USING (auth.uid()::text = created_by::text);
+CREATE POLICY "invites_public_read"  ON playlist_invites FOR SELECT USING (true);
+
+CREATE INDEX IF NOT EXISTS idx_invites_token      ON playlist_invites(token);
+CREATE INDEX IF NOT EXISTS idx_invites_playlist   ON playlist_invites(playlist_id);
+
