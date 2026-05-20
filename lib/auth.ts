@@ -61,9 +61,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider === 'credentials') return true;
 
       const supabase = getSupabaseAdmin();
-      const username = (user.email?.split('@')[0] ?? `user_${Date.now()}`)
+      const baseName = (user.email?.split('@')[0] ?? `user_${Date.now()}`)
         .toLowerCase()
         .replace(/[^a-z0-9_]/g, '_');
+      
+      const randomSuffix = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+      const username = `${baseName}_${randomSuffix}`;
 
       // Generate a deterministic UUID for OAuth accounts so Postgres doesn't complain about invalid UUIDs
       const { v5: uuidv5 } = await import('uuid');
@@ -71,23 +74,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const dbId = uuidv5(`${account?.provider}:${account?.providerAccountId}`, NAMESPACE);
       user.id = dbId; // Store it back on the user object so the JWT callback picks it up
 
-      const { error } = await supabase.from('profiles').upsert({
-        id:           dbId,
-        email:        user.email,
-        display_name: user.name,
-        username,
-        avatar_url:   user.image,
-        provider:     account?.provider,
-      }, { onConflict: 'id', ignoreDuplicates: false });
+      const { data: existingUser } = await supabase.from('profiles').select('id').eq('id', dbId).single();
 
-      if (error) console.error('[Maina Auth] upsert error:', error.message);
+      if (!existingUser) {
+        const { error } = await supabase.from('profiles').insert({
+          id:           dbId,
+          email:        user.email,
+          display_name: user.name,
+          username,
+          avatar_url:   user.image,
+          provider:     account?.provider,
+        });
+        if (error) console.error('[Maina Auth] insert error:', error.message);
+      } else {
+        // Just update avatar and display name
+        await supabase.from('profiles').update({
+          display_name: user.name,
+          avatar_url:   user.image,
+        }).eq('id', dbId);
+      }
+
       return true;
     },
 
     // Attach extra fields to the JWT
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.id       = user.id;
+        if (account?.provider && account.provider !== 'credentials') {
+          const { v5: uuidv5 } = await import('uuid');
+          const NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
+          token.id = uuidv5(`${account.provider}:${account.providerAccountId}`, NAMESPACE);
+        } else {
+          token.id = user.id;
+        }
         token.username = (user as any).username;
         token.role     = (user as any).role;
       }
