@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Loader2, Music, Link as LinkIcon, Info } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import db from '@/lib/db';
+import { useLibraryStore } from '@/store/libraryStore';
 
 interface Props {
   onClose: () => void;
@@ -53,6 +55,24 @@ export function ImportPlaylistModal({ onClose }: Props) {
       clearInterval(interval);
       
       if (!res.ok) throw new Error(data.error || 'Failed to import playlist');
+      
+      setProgressStatus('Saving to local library...');
+      
+      // Save to Local DB for immediate rendering
+      const localPlaylist = {
+        id: data.playlist.id,
+        name: data.playlist.name,
+        tracks: data.tracks.map((t: any) => t.id),
+        coverUrl: data.playlist.cover_url,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      await db.tracks.bulkPut(data.tracks);
+      await db.playlists.put(localPlaylist);
+      
+      // Reload Zustand store
+      await useLibraryStore.getState().loadLibrary();
       
       setProgressStatus('Done! Redirecting...');
       setTimeout(() => {

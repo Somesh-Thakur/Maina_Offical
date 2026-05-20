@@ -14,6 +14,11 @@ export default function Sidebar() {
   const pathname = usePathname();
   const { user } = useUserStore();
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const navLinks = [
     { name: 'Home', href: '/', icon: Home },
@@ -131,7 +136,7 @@ export default function Sidebar() {
           </Link>
         )}
 
-        {typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window) && (
+        {isMounted && !('__TAURI_INTERNALS__' in window) && (
           <Link
             href="/download"
             className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors group mt-2"

@@ -59,8 +59,10 @@ export async function fetchLyrics(
   const base = lyricsBase();
 
   try {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000');
+    
     // 1. Exact match via our server-side proxy (avoids CORS / WebView2 fetch issues)
-    const exactUrl = new URL(`${base}/api/lyrics`);
+    const exactUrl = new URL(`${baseUrl}/api/lyrics`);
     exactUrl.searchParams.set('artist_name', cleanArtist);
     exactUrl.searchParams.set('track_name', cleanTitle);
     if (duration) exactUrl.searchParams.set('duration', String(duration));
@@ -70,7 +72,7 @@ export async function fetchLyrics(
 
     // 2. Fuzzy fallback
     if (!response.ok || response.status === 404) {
-      const fuzzyUrl = new URL(`${base}/api/lyrics`);
+      const fuzzyUrl = new URL(`${baseUrl}/api/lyrics`);
       fuzzyUrl.searchParams.set('q', `${cleanTitle} ${cleanArtist}`);
       response = await fetch(fuzzyUrl.toString());
 

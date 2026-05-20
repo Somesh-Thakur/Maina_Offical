@@ -34,6 +34,19 @@ export function CreatePlaylistModal({ onClose, onSuccess }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create playlist');
 
+      // Save to Local DB for immediate rendering
+      const localPlaylist = {
+        id: data.playlist.id,
+        name: data.playlist.name,
+        tracks: [],
+        coverUrl: data.playlist.cover_url || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      };
+      
+      const db = (await import('@/lib/db')).default;
+      await db.playlists.put(localPlaylist);
+      
       onSuccess(data.playlist.id);
     } catch (err: any) {
       setError(err.message);

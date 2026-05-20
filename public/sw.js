@@ -47,6 +47,10 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE).then(c => c.put(event.request, res.clone()));
         }
         return res;
+      }).catch(err => {
+        console.warn('SW Fetch Failed:', err);
+        // Fallback for failed network requests
+        return new Response('Network error or offline', { status: 503, statusText: 'Service Unavailable' });
       });
       // Return cached immediately if available, background-refresh
       return cached || network;
