@@ -10,7 +10,6 @@ import { QueuePanel } from "@/components/player/QueuePanel";
 import { GlobalModals } from "@/components/ui/GlobalModals";
 import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
 import { AppInitializer } from "@/components/layout/AppInitializer";
-import { WelcomeScreen } from "@/components/ui/WelcomeScreen";
 import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
 import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -58,7 +57,6 @@ export default function RootLayout({
         <GlobalModals />
         <DisclaimerModal />
         <AppInitializer />
-        <WelcomeScreen />
         </GlobalContextMenuProvider>
         </AuthProvider>
         

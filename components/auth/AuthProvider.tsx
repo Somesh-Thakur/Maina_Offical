@@ -10,6 +10,22 @@ function SessionSync() {
   const { setUser, setLoading }   = useUserStore();
 
   useEffect(() => {
+    // Temporary Session Management
+    if (typeof window !== 'undefined' && status === 'authenticated') {
+      if (!sessionStorage.getItem('maina_session_active')) {
+        if (localStorage.getItem('maina_temp_session') === 'true') {
+          // It's a temporary session and a fresh tab -> log out
+          import('next-auth/react').then(({ signOut }) => {
+            signOut({ redirect: false });
+            localStorage.removeItem('maina_temp_session');
+          });
+          return;
+        } else {
+          sessionStorage.setItem('maina_session_active', 'true');
+        }
+      }
+    }
+
     setLoading(status === 'loading');
     if (status === 'authenticated' && session?.user) {
       setUser({

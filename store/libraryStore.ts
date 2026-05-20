@@ -83,7 +83,6 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
     }
   },
 
-  toggleLike: async (track) => {
   toggleLike: async (track: Track) => {
     const isLiked = get().isLiked(track.id);
     try {
