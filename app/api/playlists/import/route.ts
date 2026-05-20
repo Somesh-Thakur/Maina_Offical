@@ -13,6 +13,14 @@ export async function POST(req: NextRequest) {
   const uid = session.user.id;
   const sb = getSupabaseAdmin();
 
+  // Ensure user profile exists (helps if they had an old OAuth session before we fixed UUIDs)
+  const { data: profile } = await sb.from('profiles').select('id').eq('id', uid).single();
+  if (!profile) {
+    return NextResponse.json({ 
+      error: 'Your profile data is missing. Please Sign Out and Sign In again to fix your account sync.' 
+    }, { status: 400 });
+  }
+
   try {
     let title = 'Imported Playlist';
     let cover_url = '';
