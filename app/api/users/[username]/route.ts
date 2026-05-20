@@ -13,7 +13,7 @@ export async function GET(
   const { data: user, error: userError } = await sb
     .from('profiles')
     .select('id, username, display_name, avatar_url, bio')
-    .eq('username', username)
+    .ilike('username', username)
     .single();
 
   if (userError || !user) return NextResponse.json({ error: 'User not found' }, { status: 404 });

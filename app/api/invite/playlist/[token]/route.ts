@@ -4,13 +4,17 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 
 // GET /api/invite/playlist/[token]  → accept an invite (adds user as collaborator)
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
   const session = await auth();
+  
+  // Base URL from the incoming request (works well in Vercel)
+  const baseUrl = req.nextUrl.origin;
+
   if (!session?.user?.id) {
-    return NextResponse.redirect(new URL('/login?next=/invite/playlist/' + token, process.env.NEXTAUTH_URL ?? ''));
+    return NextResponse.redirect(new URL(`/login?next=/invite/playlist/${token}`, baseUrl));
   }
 
   const sb  = getSupabaseAdmin();
@@ -23,9 +27,15 @@ export async function GET(
     .eq('token', token)
     .single();
 
-  if (!invite) return NextResponse.json({ error: 'Invalid invite link' }, { status: 404 });
-  if (invite.uses >= invite.max_uses) return NextResponse.json({ error: 'Invite limit reached' }, { status: 410 });
-  if (new Date(invite.expires_at) < new Date()) return NextResponse.json({ error: 'Invite expired' }, { status: 410 });
+  if (!invite) {
+    return NextResponse.redirect(new URL(`/?error=Invalid invite link`, baseUrl));
+  }
+  if (invite.uses >= invite.max_uses) {
+    return NextResponse.redirect(new URL(`/?error=Invite limit reached`, baseUrl));
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    return NextResponse.redirect(new URL(`/?error=Invite expired`, baseUrl));
+  }
 
   // Add as collaborator (upsert to avoid duplicate errors)
   await sb.from('playlist_collaborators').upsert({
@@ -38,6 +48,5 @@ export async function GET(
   await sb.from('playlist_invites').update({ uses: invite.uses + 1 }).eq('id', invite.id);
 
   // Redirect to the playlist
-  const base = process.env.NEXTAUTH_URL ?? 'https://maina-offical.vercel.app';
-  return NextResponse.redirect(new URL(`/playlist/${invite.playlist_id}`, base));
+  return NextResponse.redirect(new URL(`/playlist/${invite.playlist_id}`, baseUrl));
 }

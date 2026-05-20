@@ -1,15 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Script from "next/script";
-import Sidebar from "@/components/layout/Sidebar";
-import MobileNav from "@/components/layout/MobileNav";
-import PlayerBar from "@/components/player/PlayerBar";
-import { FullscreenPlayer } from "@/components/player/FullscreenPlayer";
-import { LyricsPanel } from "@/components/player/LyricsPanel";
-import { QueuePanel } from "@/components/player/QueuePanel";
-import { GlobalModals } from "@/components/ui/GlobalModals";
-import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
-import { AppInitializer } from "@/components/layout/AppInitializer";
+import { AppShell } from "@/components/layout/AppShell";
 import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
 import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -40,24 +32,12 @@ export default function RootLayout({
       </head>
       <body className={`antialiased h-screen overflow-hidden flex flex-col md:flex-row text-[var(--text-primary)]`}>
         <AuthProvider>
-        <TauriTitleBar />
-        <GlobalContextMenuProvider>
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto pb-[152px] md:pb-[80px] relative no-scrollbar md:ml-[240px]">
-          {children}
-        </main>
-        
-        {/* Global Player Components */}
-        <PlayerBar />
-        <FullscreenPlayer />
-        <LyricsPanel />
-        <QueuePanel />
-        
-        <MobileNav />
-        <GlobalModals />
-        <DisclaimerModal />
-        <AppInitializer />
-        </GlobalContextMenuProvider>
+          <TauriTitleBar />
+          <GlobalContextMenuProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </GlobalContextMenuProvider>
         </AuthProvider>
         
         {/* YouTube IFrame API */}

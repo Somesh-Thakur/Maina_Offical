@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 
 // POST /api/playlists/[id]/invite  → create an invite link
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -31,6 +31,6 @@ export async function POST(
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const baseUrl = process.env.NEXTAUTH_URL ?? 'https://maina-offical.vercel.app';
+  const baseUrl = req.nextUrl.origin;
   return NextResponse.json({ url: `${baseUrl}/invite/playlist/${invite.token}` });
 }
