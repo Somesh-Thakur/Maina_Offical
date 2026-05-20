@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Home, Search, Library, Plus, User as UserIcon, MessageSquare, LogOut, LogIn, Shield, Settings } from 'lucide-react';
 import { useLibrary } from '@/hooks/useLibrary';
