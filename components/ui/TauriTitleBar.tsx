@@ -76,7 +76,6 @@ export function TauriTitleBar() {
 
   return (
     <div
-      data-tauri-drag-region
       style={{
         position: 'fixed',
         top: 0,
@@ -94,7 +93,7 @@ export function TauriTitleBar() {
         pointerEvents: 'auto',
       }}
     >
-      {/* App name / logo (drag region — pointer-events: none so drag works) */}
+      {/* App name / logo (drag region) */}
       <div
         data-tauri-drag-region
         style={{
@@ -117,6 +116,9 @@ export function TauriTitleBar() {
         />
         MAINA
       </div>
+      
+      {/* Spacer for drag region */}
+      <div data-tauri-drag-region style={{ flex: 1, height: '100%' }} />
 
       {/* Window Controls — Windows-style, right side */}
       <div style={{ display: 'flex', height: '36px' }}>

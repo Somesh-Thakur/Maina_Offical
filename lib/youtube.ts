@@ -136,3 +136,24 @@ export async function getRelatedArtists(query: string) {
     maxResults: 10
   });
 }
+
+export async function getPlaylistItems(playlistId: string): Promise<Track[]> {
+  // 1. Fetch playlist items (max 50)
+  const data = await fetchYouTube('playlistItems', {
+    part: 'snippet',
+    playlistId,
+    maxResults: 50
+  });
+  
+  if (!data.items || data.items.length === 0) return [];
+
+  // 2. Extract video IDs
+  const videoIds = data.items
+    .map((item: any) => item.snippet?.resourceId?.videoId)
+    .filter(Boolean);
+
+  if (videoIds.length === 0) return [];
+
+  // 3. Fetch details to get durations
+  return getVideoDetails(videoIds);
+}

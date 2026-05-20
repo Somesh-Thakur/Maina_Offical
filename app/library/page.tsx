@@ -6,12 +6,19 @@ import Link from 'next/link';
 import { Heart, UserCheck, Plus } from 'lucide-react';
 import { useModalStore } from '@/store/modalStore';
 
+import { ImportPlaylistModal } from '@/components/playlist/ImportPlaylistModal';
+import { CreatePlaylistModal } from '@/components/playlist/CreatePlaylistModal';
+import { Download } from 'lucide-react';
+
 export default function LibraryPage() {
   const playlists = useLibraryStore(state => state.playlists);
   const likedTracks = useLibraryStore(state => state.likedTracks);
   const trackMap = useLibraryStore(state => state.trackMap);
   const followedArtists = useLibraryStore(state => state.followedArtists);
   const toggleFollowArtist = useLibraryStore(state => state.toggleFollowArtist);
+
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [showImport, setShowImport] = React.useState(false);
 
   return (
     <div className="p-6 md:p-10 pt-20 md:pt-10 max-w-7xl mx-auto flex flex-col gap-14">
@@ -41,16 +48,22 @@ export default function LibraryPage() {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-display font-bold">Playlists</h2>
-          <button
-            onClick={async () => {
-              const name = await useModalStore.getState().showPrompt('Enter a name for your new playlist:', 'New Playlist');
-              if (name) useLibraryStore.getState().createPlaylist(name);
-            }}
-            className="flex items-center gap-2 text-sm text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors"
-          >
-            <Plus size={15} />
-            New Playlist
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowImport(true)}
+              className="flex items-center gap-2 text-sm font-semibold text-black bg-white hover:bg-white/90 px-4 py-2 rounded-full transition-colors"
+            >
+              <Download size={15} />
+              Import Playlist
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full transition-colors"
+            >
+              <Plus size={15} />
+              New Playlist
+            </button>
+          </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {playlists.map(playlist => (
@@ -114,6 +127,20 @@ export default function LibraryPage() {
           </div>
         )}
       </section>
+
+      {/* Modals */}
+      {showCreate && (
+        <CreatePlaylistModal 
+          onClose={() => setShowCreate(false)} 
+          onSuccess={(id) => {
+            setShowCreate(false);
+            useLibraryStore.getState().loadLibrary();
+          }} 
+        />
+      )}
+      {showImport && (
+        <ImportPlaylistModal onClose={() => setShowImport(false)} />
+      )}
     </div>
   );
 }

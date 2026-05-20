@@ -65,8 +65,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         .toLowerCase()
         .replace(/[^a-z0-9_]/g, '_');
 
+      // Generate a deterministic UUID for OAuth accounts so Postgres doesn't complain about invalid UUIDs
+      const { v5: uuidv5 } = await import('uuid');
+      const NAMESPACE = '1b671a64-40d5-491e-99b0-da01ff1f3341';
+      const dbId = uuidv5(`${account?.provider}:${account?.providerAccountId}`, NAMESPACE);
+      user.id = dbId; // Store it back on the user object so the JWT callback picks it up
+
       const { error } = await supabase.from('profiles').upsert({
-        id:           user.id,
+        id:           dbId,
         email:        user.email,
         display_name: user.name,
         username,

@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Home, Search, Library, Plus, User as UserIcon, MessageSquare, LogOut, LogIn, Shield, Settings } from 'lucide-react';
 import { useLibrary } from '@/hooks/useLibrary';
@@ -6,18 +7,13 @@ import { usePathname } from 'next/navigation';
 import { useModalStore } from '@/store/modalStore';
 import { useUserStore } from '@/store/userStore';
 import { signOut } from 'next-auth/react';
+import { CreatePlaylistModal } from '@/components/playlist/CreatePlaylistModal';
 
 export default function Sidebar() {
   const { playlists, createPlaylist } = useLibrary();
   const pathname = usePathname();
   const { user } = useUserStore();
-
-  const handleCreatePlaylist = async () => {
-    const name = await useModalStore.getState().showPrompt('Enter a name for your new playlist:', 'New Playlist');
-    if (!name) return;
-    const id = await createPlaylist(name);
-    // Can optionally navigate to the new playlist directly
-  };
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   const navLinks = [
     { name: 'Home', href: '/', icon: Home },
@@ -27,6 +23,7 @@ export default function Sidebar() {
   ];
 
   return (
+    <>
     <aside className="hidden md:flex flex-col w-[240px] bg-white/[0.02] backdrop-blur-xl border-r border-[var(--border)] h-[calc(100vh-80px)] p-6 z-40 fixed left-0 top-0">
       <div className="mb-8">
         <Link href="/" className="text-2xl font-display font-bold tracking-tight text-white flex items-center gap-2">
@@ -55,7 +52,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto no-scrollbar">
         <div className="flex items-center justify-between text-[#a3a3a3] px-3 mb-2">
           <span className="text-xs font-semibold tracking-wider uppercase">Playlists</span>
-          <button onClick={handleCreatePlaylist} className="hover:text-white transition-colors">
+          <button onClick={() => setShowCreateModal(true)} className="hover:text-white transition-colors">
             <Plus size={16} />
           </button>
         </div>
@@ -134,7 +131,6 @@ export default function Sidebar() {
           </Link>
         )}
 
-        {/* Download app link — shown only in browser, hidden inside Tauri */}
         {typeof window !== 'undefined' && !('__TAURI_INTERNALS__' in window) && (
           <Link
             href="/download"
@@ -150,5 +146,15 @@ export default function Sidebar() {
         )}
       </div>
     </aside>
+    {showCreateModal && (
+      <CreatePlaylistModal 
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={(id) => {
+          setShowCreateModal(false);
+          // Optional: redirect to playlist
+        }}
+      />
+    )}
+    </>
   );
 }
