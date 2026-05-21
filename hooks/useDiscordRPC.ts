@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { usePlayerStore } from '@/store/playerStore';
+import { useVibeStore } from '@/store/vibeStore';
 import { DiscordLocalRPC } from '@/lib/discordRPC';
 
 /**
@@ -57,6 +58,9 @@ export function useDiscordRPC() {
   const isPlaying    = usePlayerStore(state => state.isPlaying);
   const progress     = usePlayerStore(state => state.progress);
   const duration     = usePlayerStore(state => state.duration);
+  const vibeStatus   = useVibeStore(state => state.status);
+  const vibeParticipants = useVibeStore(state => state.participants.length);
+  const vibeRoomId   = useVibeStore(state => state.roomId);
 
   const lastSentRef  = useRef<number>(0);
   const lastTrackRef = useRef<string | null>(null);
@@ -82,6 +86,12 @@ export function useDiscordRPC() {
     const elapsed  = Math.floor((progress ?? 0) * (duration ?? 0));
     const dur      = Math.floor(duration ?? 0);
 
+    const vibeInfo = {
+      active: vibeStatus === 'connected',
+      participants: vibeParticipants,
+      roomId: vibeRoomId
+    };
+
     // PATH A: HTTP server (desktop app)
     postHttpRpc({
       title:        currentTrack.title     ?? '',
@@ -89,6 +99,7 @@ export function useDiscordRPC() {
       thumbnailUrl: currentTrack.thumbnail ?? '',
       durationSecs: dur,
       elapsedSecs:  elapsed,
+      vibeInfo
     });
 
     // PATH B: Discord WebSocket (web)
@@ -100,6 +111,7 @@ export function useDiscordRPC() {
         currentTrack.thumbnail ?? '',
         dur,
         elapsed,
+        vibeInfo
       );
     });
 

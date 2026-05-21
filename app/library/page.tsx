@@ -8,7 +8,10 @@ import { useModalStore } from '@/store/modalStore';
 
 import { ImportPlaylistModal } from '@/components/playlist/ImportPlaylistModal';
 import { CreatePlaylistModal } from '@/components/playlist/CreatePlaylistModal';
-import { Download } from 'lucide-react';
+import { Download, Radio } from 'lucide-react';
+import { useVibeStore } from '@/store/vibeStore';
+import { useUserStore } from '@/store/userStore';
+import { VibeLobby } from '@/components/vibe/VibeLobby';
 
 export default function LibraryPage() {
   const playlists = useLibraryStore(state => state.playlists);
@@ -19,6 +22,21 @@ export default function LibraryPage() {
 
   const [showCreate, setShowCreate] = React.useState(false);
   const [showImport, setShowImport] = React.useState(false);
+  const [showVibe, setShowVibe] = React.useState(false);
+
+  // Auto-open vibe lobby if join link used
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const vibeCode = urlParams.get('vibe');
+    if (vibeCode) {
+      if (!useVibeStore.getState().roomId) {
+        useVibeStore.getState().setRoom(vibeCode, ''); // Guest mode until host syncs
+      }
+      setShowVibe(true);
+      // Clean URL
+      window.history.replaceState({}, '', '/library');
+    }
+  }, []);
 
   return (
     <div className="p-6 md:p-10 pt-20 md:pt-10 max-w-7xl mx-auto flex flex-col gap-14">
@@ -28,20 +46,41 @@ export default function LibraryPage() {
         </h1>
       </header>
 
-      {/* Liked Songs */}
-      <section>
+      {/* Library Highlights */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl">
         <Link
           href="/liked"
-          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-8 flex flex-col justify-end h-56 shadow-xl hover:scale-[1.02] transition-transform block max-w-4xl"
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 p-8 flex flex-col justify-end h-56 shadow-xl hover:scale-[1.02] transition-transform"
         >
           <div className="absolute top-8 left-8 bg-white/20 p-4 rounded-full backdrop-blur-md">
             <Heart size={32} className="text-white fill-white" />
           </div>
           <div className="relative z-10">
-            <h2 className="text-4xl font-display font-bold text-white mb-1">Liked Songs</h2>
+            <h2 className="text-3xl font-display font-bold text-white mb-1">Liked Songs</h2>
             <p className="text-white/70 font-medium">{likedTracks.length} songs</p>
           </div>
         </Link>
+        
+        <button
+          onClick={() => {
+            if (!useVibeStore.getState().roomId) {
+              const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+              useVibeStore.getState().setRoom(code, useUserStore.getState().user?.id || 'guest');
+            }
+            setShowVibe(true);
+          }}
+          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-8 flex flex-col justify-end h-56 shadow-xl hover:scale-[1.02] transition-transform text-left"
+        >
+          <div className="absolute top-8 left-8 bg-white/20 p-4 rounded-full backdrop-blur-md">
+            <Radio size={32} className="text-white" />
+          </div>
+          <div className="relative z-10">
+            <h2 className="text-3xl font-display font-bold text-white mb-1 flex items-center gap-2">
+              Vibe Together
+            </h2>
+            <p className="text-white/70 font-medium">Listen with friends in real-time</p>
+          </div>
+        </button>
       </section>
 
       {/* Playlists */}
@@ -130,16 +169,13 @@ export default function LibraryPage() {
 
       {/* Modals */}
       {showCreate && (
-        <CreatePlaylistModal 
-          onClose={() => setShowCreate(false)} 
-          onSuccess={(id) => {
-            setShowCreate(false);
-            useLibraryStore.getState().loadLibrary();
-          }} 
-        />
+        <CreatePlaylistModal onClose={() => setShowCreate(false)} onSuccess={() => setShowCreate(false)} />
       )}
       {showImport && (
         <ImportPlaylistModal onClose={() => setShowImport(false)} />
+      )}
+      {showVibe && (
+        <VibeLobby onClose={() => setShowVibe(false)} />
       )}
     </div>
   );

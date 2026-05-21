@@ -130,6 +130,13 @@ export function ImportPlaylistModal({ onClose }: Props) {
                   Paste a public <b>Spotify</b> or <b>YouTube Music</b> playlist URL to instantly import all of its tracks into Maina.
                 </p>
 
+                <div className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400/90 text-xs px-3 py-2.5 rounded-lg flex gap-2 items-start">
+                  <Info size={16} className="shrink-0 mt-0.5" />
+                  <p>
+                    <b>Note:</b> The Spotify importer is not perfect due to API limitations. For the best outcome, we recommend using a 3rd party tool to transfer your Spotify playlist to YouTube first, and then import the YouTube URL here!
+                  </p>
+                </div>
+
                 <div className="flex flex-col gap-2">
                   <div className="relative">
                     <LinkIcon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />

@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Track } from '@/lib/db';
+import { useVibeStore } from './vibeStore';
+import { useUserStore } from './userStore';
+import toast from 'react-hot-toast';
 
 type RepeatMode = 'off' | 'all' | 'one';
 
@@ -48,6 +51,17 @@ interface PlayerState {
   fetchAutoplayTrack: (track: Track) => Promise<void>;
 }
 
+const checkVibeAuth = (): boolean => {
+  const vibe = useVibeStore.getState();
+  const user = useUserStore.getState().user;
+  
+  if (vibe.status === 'connected' && vibe.hostId && vibe.hostId !== user?.id) {
+    toast('Only the host can control playback', { icon: '🔒', id: 'vibe-lock' });
+    return false;
+  }
+  return true;
+};
+
 export const usePlayerStore = create<PlayerState>()(
   persist(
     (set, get) => ({
@@ -68,6 +82,7 @@ export const usePlayerStore = create<PlayerState>()(
       autoplay: true,
 
       play: (track) => {
+        if (!checkVibeAuth()) return;
         const { currentTrack, history } = get();
         const newHistory = currentTrack ? [...history, currentTrack].slice(-500) : history;
         set({ currentTrack: track, isPlaying: true, history: newHistory, progress: 0, duration: track.duration });
@@ -75,13 +90,23 @@ export const usePlayerStore = create<PlayerState>()(
         // Log to cloud trending history
         fetch('/api/player/history', { method: 'POST', body: JSON.stringify({ track }) }).catch(console.error);
       },
-      pause: () => set({ isPlaying: false }),
-      resume: () => set({ isPlaying: !!get().currentTrack }),
-      togglePlayPause: () => set((state) => {
-        if (!state.currentTrack) return state;
-        return { isPlaying: !state.isPlaying };
-      }),
+      pause: () => {
+        if (!checkVibeAuth()) return;
+        set({ isPlaying: false });
+      },
+      resume: () => {
+        if (!checkVibeAuth()) return;
+        set({ isPlaying: !!get().currentTrack });
+      },
+      togglePlayPause: () => {
+        if (!checkVibeAuth()) return;
+        set((state) => {
+          if (!state.currentTrack) return state;
+          return { isPlaying: !state.isPlaying };
+        });
+      },
       next: () => {
+        if (!checkVibeAuth()) return;
         const { queue, currentTrack, history, repeat, shuffle } = get();
         
         if (repeat === 'one' && currentTrack) {
@@ -101,37 +126,25 @@ export const usePlayerStore = create<PlayerState>()(
           return;
         }
 
-        let nextTrackIndex = 0;
-        if (shuffle) {
-          nextTrackIndex = Math.floor(Math.random() * queue.length);
-        }
-
-        const nextTrack = queue[nextTrackIndex];
-        const newQueue = [...queue];
-        newQueue.splice(nextTrackIndex, 1);
+        const nextTrack = shuffle ? queue[Math.floor(Math.random() * queue.length)] : queue[0];
+        const newQueue = shuffle ? queue.filter(t => t.id !== nextTrack.id) : queue.slice(1);
         
         const newHistory = currentTrack ? [...history, currentTrack].slice(-500) : history;
-
-        // If repeat all and queue is now empty, we might need to restore queue in a real app,
-        // but for now simple queue consumption is implemented.
         set({ currentTrack: nextTrack, queue: newQueue, history: newHistory, isPlaying: true, progress: 0 });
       },
       previous: () => {
-        const { history, currentTrack, queue, progress, duration } = get();
-        
-        // If we're more than 3 seconds into the song, restart it instead of going back
-        if ((progress * duration) > 3 || history.length === 0) {
-          set({ progress: 0, isPlaying: true });
+        if (!checkVibeAuth()) return;
+        const { history, currentTrack, queue } = get();
+        if (history.length === 0) {
+          set({ progress: 0 }); // Just restart track
           return;
         }
-
-        const newHistory = [...history];
-        const prevTrack = newHistory.pop();
         
-        if (prevTrack) {
-          const newQueue = currentTrack ? [currentTrack, ...queue] : queue;
-          set({ currentTrack: prevTrack, history: newHistory, queue: newQueue, isPlaying: true, progress: 0 });
-        }
+        const prevTrack = history[history.length - 1];
+        const newHistory = history.slice(0, -1);
+        const newQueue = currentTrack ? [currentTrack, ...queue] : queue;
+        
+        set({ currentTrack: prevTrack, history: newHistory, queue: newQueue, isPlaying: true, progress: 0 });
       },
       setVolume: (volume) => set({ volume, isMuted: volume === 0 }),
       toggleMute: () => set((state) => ({ isMuted: !state.isMuted })),
@@ -141,12 +154,16 @@ export const usePlayerStore = create<PlayerState>()(
         return { repeat: nextMode[state.repeat] };
       }),
       seek: (seconds) => {
-        const duration = get().duration;
+        if (!checkVibeAuth()) return;
+        const { duration } = get();
         if (duration > 0) {
           set({ progress: seconds / duration });
         }
       },
-      setProgress: (progress) => set({ progress }),
+      setProgress: (progress) => {
+        if (!checkVibeAuth()) return;
+        set({ progress });
+      },
       setDuration: (duration) => set({ duration }),
       setQueue: (tracks) => set({ queue: tracks }),
       addToQueue: (track, next = false) => set((state) => {

@@ -150,7 +150,7 @@ export class DiscordLocalRPC {
     }
   }
 
-  setActivity(title: string, artist: string, thumbnailUrl: string, duration: number, elapsed: number) {
+  setActivity(title: string, artist: string, thumbnailUrl: string, duration: number, elapsed: number, vibeInfo?: { active: boolean, participants: number, roomId: string | null }) {
     if (!this.connected || !this.ws) return;
 
     const now = Math.floor(Date.now() / 1000);
@@ -160,19 +160,33 @@ export class DiscordLocalRPC {
     const timestamps: Record<string, number> = { start: startTs };
     if (endTs > 0) timestamps.end = endTs;
 
+    let stateStr = artist.slice(0, 128);
+    let buttonLabel = 'Listen on Maina';
+    let buttonUrl = 'https://maina-offical.vercel.app';
+
+    if (vibeInfo?.active) {
+      stateStr = `Vibing with ${vibeInfo.participants} ${vibeInfo.participants === 1 ? 'person' : 'people'}`;
+      if (vibeInfo.roomId) {
+        buttonLabel = 'Join Vibe Together';
+        buttonUrl = `https://maina-offical.vercel.app/library?vibe=${vibeInfo.roomId}`;
+      }
+    }
+
     this._send('SET_ACTIVITY', {
       pid: 1337,
       activity: {
         type: 2, // LISTENING
         details: title.slice(0, 128),
-        state: artist.slice(0, 128),
+        state: stateStr,
         assets: {
           large_image: thumbnailUrl || 'maina_logo',
           large_text: title.slice(0, 128),
+          small_image: vibeInfo?.active ? 'maina_logo' : undefined,
+          small_text: vibeInfo?.active ? artist.slice(0, 128) : undefined
         },
         timestamps,
         buttons: [
-          { label: 'Listen on Maina', url: 'https://maina-offical.vercel.app' },
+          { label: buttonLabel, url: buttonUrl },
         ],
       },
     }).catch(() => {});
