@@ -142,6 +142,8 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
   deletePlaylist: async (id) => {
     await db.playlists.delete(id);
     set(state => ({ playlists: state.playlists.filter(p => p.id !== id) }));
+    // Cloud sync
+    fetch(`/api/playlists/${id}`, { method: 'DELETE' }).catch(console.error);
   },
 
   renamePlaylist: async (id, name) => {

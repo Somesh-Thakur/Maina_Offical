@@ -44,7 +44,12 @@ self.addEventListener('fetch', (event) => {
       const network = fetch(event.request).then(res => {
         // Update cache with fresh response
         if (res.ok && SHELL.includes(url.pathname)) {
-          caches.open(CACHE).then(c => c.put(event.request, res.clone()));
+          try {
+            const resToCache = res.clone();
+            caches.open(CACHE).then(c => c.put(event.request, resToCache)).catch(console.warn);
+          } catch (e) {
+            console.warn('Failed to clone response for caching:', e);
+          }
         }
         return res;
       }).catch(err => {
