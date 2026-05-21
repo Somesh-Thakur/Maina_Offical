@@ -7,6 +7,8 @@ import PlayerBar from "@/components/player/PlayerBar";
 import { FullscreenPlayer } from "@/components/player/FullscreenPlayer";
 import { LyricsPanel } from "@/components/player/LyricsPanel";
 import { QueuePanel } from "@/components/player/QueuePanel";
+import { VibePanel } from "@/components/vibe/VibePanel";
+import { VibeInviteHandler } from "@/components/vibe/VibeInviteHandler";
 import { GlobalModals } from "@/components/ui/GlobalModals";
 import { DisclaimerModal } from "@/components/ui/DisclaimerModal";
 import { AppInitializer } from "@/components/layout/AppInitializer";
@@ -40,11 +42,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <FullscreenPlayer />
       <LyricsPanel />
       <QueuePanel />
+      <VibePanel />
       
       <MobileNav />
       <GlobalModals />
       <DisclaimerModal />
       <AppInitializer />
+      <React.Suspense fallback={null}>
+        <VibeInviteHandler />
+      </React.Suspense>
     </>
   );
 }

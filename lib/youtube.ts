@@ -19,6 +19,10 @@ async function fetchYouTube(endpoint: string, params: Record<string, string | nu
   });
   
   if (!response.ok) {
+    if (response.status === 403) {
+      console.error('YouTube API quota exceeded or forbidden (403).');
+      return { items: [] }; // Prevent crash on quota exhaust
+    }
     throw new Error(`YouTube API Error: ${response.status} ${response.statusText}`);
   }
   return response.json();

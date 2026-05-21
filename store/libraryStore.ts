@@ -60,7 +60,7 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
         
         let shouldUpdate = false;
         const currentLikes = await db.likedSongs.toArray();
-        const serverLikes = new Set(data.likes.map((l: any) => l.track_id));
+        const serverLikes = new Set(data.likes?.map((l: any) => l.track_id) || []);
         
         // Add new likes
         for (const track of data.tracks) {

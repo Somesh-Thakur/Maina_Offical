@@ -22,6 +22,7 @@ interface PlayerState {
   isFullscreen: boolean;
   showQueue: boolean;
   showLyrics: boolean;
+  showVibePanel: boolean;
   autoplay: boolean;
   
   // Actions
@@ -47,6 +48,7 @@ interface PlayerState {
   toggleFullscreen: () => void;
   toggleQueue: () => void;
   toggleLyrics: () => void;
+  toggleVibePanel: () => void;
   toggleAutoplay: () => void;
   fetchAutoplayTrack: (track: Track) => Promise<void>;
 }
@@ -79,6 +81,7 @@ export const usePlayerStore = create<PlayerState>()(
       isFullscreen: false,
       showQueue: false,
       showLyrics: false,
+      showVibePanel: false,
       autoplay: true,
 
       play: (track) => {
@@ -189,8 +192,9 @@ export const usePlayerStore = create<PlayerState>()(
       }),
       setPlaybackRate: (rate) => set({ playbackRate: rate }),
       toggleFullscreen: () => set((state) => ({ isFullscreen: !state.isFullscreen })),
-      toggleQueue: () => set((state) => ({ showQueue: !state.showQueue, showLyrics: false })),
-      toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics, showQueue: false })),
+      toggleQueue: () => set((state) => ({ showQueue: !state.showQueue, showLyrics: false, showVibePanel: false })),
+      toggleLyrics: () => set((state) => ({ showLyrics: !state.showLyrics, showQueue: false, showVibePanel: false })),
+      toggleVibePanel: () => set((state) => ({ showVibePanel: !state.showVibePanel, showQueue: false, showLyrics: false })),
       toggleAutoplay: () => set((state) => ({ autoplay: !state.autoplay })),
       fetchAutoplayTrack: async (track) => {
         try {

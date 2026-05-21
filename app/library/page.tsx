@@ -11,7 +11,6 @@ import { CreatePlaylistModal } from '@/components/playlist/CreatePlaylistModal';
 import { Download, Radio } from 'lucide-react';
 import { useVibeStore } from '@/store/vibeStore';
 import { useUserStore } from '@/store/userStore';
-import { VibeLobby } from '@/components/vibe/VibeLobby';
 
 export default function LibraryPage() {
   const playlists = useLibraryStore(state => state.playlists);
@@ -62,13 +61,7 @@ export default function LibraryPage() {
         </Link>
         
         <button
-          onClick={() => {
-            if (!useVibeStore.getState().roomId) {
-              const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-              useVibeStore.getState().setRoom(code, useUserStore.getState().user?.id || 'guest');
-            }
-            setShowVibe(true);
-          }}
+          onClick={() => setShowVibe(true)}
           className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 p-8 flex flex-col justify-end h-56 shadow-xl hover:scale-[1.02] transition-transform text-left"
         >
           <div className="absolute top-8 left-8 bg-white/20 p-4 rounded-full backdrop-blur-md">
@@ -82,6 +75,73 @@ export default function LibraryPage() {
           </div>
         </button>
       </section>
+
+      {/* Host or Join Modal */}
+      {showVibe && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#141414] border border-white/10 p-6 rounded-2xl max-w-md w-full flex flex-col gap-6 relative">
+            <button onClick={() => setShowVibe(false)} className="absolute top-4 right-4 text-white/50 hover:text-white">
+              <Plus size={20} className="rotate-45" />
+            </button>
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-2">
+                <Radio size={32} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-white">Vibe Together</h2>
+              <p className="text-sm text-white/60">Listen to music in sync with your friends.</p>
+            </div>
+            
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowVibe(false);
+                  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                  useVibeStore.getState().setRoom(code, useUserStore.getState().user?.id || 'guest');
+                  const { usePlayerStore } = require('@/store/playerStore');
+                  usePlayerStore.getState().toggleVibePanel();
+                }}
+                className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-lg shadow-lg hover:opacity-90 transition-opacity"
+              >
+                Start a New Session
+              </button>
+              
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink-0 mx-4 text-white/40 text-sm">or join existing</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
+              
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                let code = fd.get('code') as string;
+                if (!code) return;
+                
+                // Parse URL if pasted
+                if (code.includes('?vibe=')) {
+                  code = new URL(code).searchParams.get('vibe') || code;
+                }
+                
+                setShowVibe(false);
+                useVibeStore.getState().setRoom(code.toUpperCase(), '');
+                const { usePlayerStore } = require('@/store/playerStore');
+                usePlayerStore.getState().toggleVibePanel();
+              }} className="flex gap-2">
+                <input 
+                  type="text" 
+                  name="code" 
+                  placeholder="Enter Code or Link" 
+                  className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition-colors uppercase"
+                  required
+                />
+                <button type="submit" className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-bold transition-colors">
+                  Join
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Playlists */}
       <section>
@@ -173,9 +233,6 @@ export default function LibraryPage() {
       )}
       {showImport && (
         <ImportPlaylistModal onClose={() => setShowImport(false)} />
-      )}
-      {showVibe && (
-        <VibeLobby onClose={() => setShowVibe(false)} />
       )}
     </div>
   );

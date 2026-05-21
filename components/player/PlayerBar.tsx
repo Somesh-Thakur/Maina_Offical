@@ -1,18 +1,18 @@
 'use client';
 import { useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Mic2, Maximize2, Heart } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, ListMusic, Mic2, Maximize2, Heart, Radio, PlusCircle } from 'lucide-react';
 import { usePlayer } from '@/hooks/usePlayer';
 import { useTheme } from '@/hooks/useTheme';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { usePlayerStore } from '@/store/playerStore';
 import { useLibraryStore } from '@/store/libraryStore';
+import { useModalStore } from '@/store/modalStore';
+import { useVibeStore } from '@/store/vibeStore';
 import { IconButton } from '@/components/ui/IconButton';
 import { VolumeControl } from './VolumeControl';
 import { Slider } from '@/components/ui/Slider';
 import { PlaylistSelectionModal } from '@/components/ui/PlaylistSelectionModal';
-import { useModalStore } from '@/store/modalStore';
 import gsap from 'gsap';
-import { PlusCircle } from 'lucide-react';
 
 export default function PlayerBar() {
   const { seekTo } = usePlayer() || {};
@@ -32,10 +32,12 @@ export default function PlayerBar() {
   const duration = usePlayerStore(state => state.duration);
   const seek = usePlayerStore(state => state.seek);
   const toggleFullscreen = usePlayerStore(state => state.toggleFullscreen);
-  const toggleQueue = usePlayerStore(state => state.toggleQueue);
-  const toggleLyrics = usePlayerStore(state => state.toggleLyrics);
   const showQueue = usePlayerStore(state => state.showQueue);
+  const toggleQueue = usePlayerStore(state => state.toggleQueue);
   const showLyrics = usePlayerStore(state => state.showLyrics);
+  const toggleLyrics = usePlayerStore(state => state.toggleLyrics);
+  const showVibePanel = usePlayerStore(state => state.showVibePanel);
+  const toggleVibePanel = usePlayerStore(state => state.toggleVibePanel);
 
   const toggleLike = useLibraryStore(state => state.toggleLike);
   const isLiked = useLibraryStore(state => currentTrack ? state.isLiked(currentTrack.id) : false);
@@ -226,6 +228,7 @@ export default function PlayerBar() {
       </div>
 
       <div className="hidden md:flex flex-1 items-center justify-end gap-2 md:gap-4">
+        <IconButton icon={Radio} size="sm" isActive={showVibePanel} onClick={toggleVibePanel} className={useVibeStore.getState().roomId ? 'text-[var(--accent)]' : ''} />
         <IconButton icon={Mic2} size="sm" isActive={showLyrics} onClick={toggleLyrics} />
         <IconButton icon={ListMusic} size="sm" isActive={showQueue} onClick={toggleQueue} />
         <div className="hidden lg:block"><VolumeControl /></div>
