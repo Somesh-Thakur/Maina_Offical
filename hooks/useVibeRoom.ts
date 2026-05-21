@@ -73,19 +73,19 @@ export function useVibeRoom() {
         // Track change
         const currentPlayerTrack = usePlayerStore.getState().currentTrack;
         if (!currentPlayerTrack || currentPlayerTrack.id !== track.id) {
-          usePlayerStore.getState().play(track);
+          usePlayerStore.getState().play(track, true);
         }
         
         // Play/Pause state
         const pState = usePlayerStore.getState();
-        if (hostPlaying && !pState.isPlaying) pState.play(track); // Use play() to resume
-        if (!hostPlaying && pState.isPlaying) pState.pause();
+        if (hostPlaying && !pState.isPlaying) pState.play(track, true); // Use play() to resume
+        if (!hostPlaying && pState.isPlaying) pState.pause(true);
         
         // Time sync (only seek if > 2 seconds off)
         const pDuration = usePlayerStore.getState().duration;
         const myTime = (usePlayerStore.getState().progress || 0) * (pDuration || 0);
         if (Math.abs(myTime - time) > 2) {
-          pState.seek(time);
+          pState.seek(time, true);
         }
       })
       .on('broadcast', { event: 'transfer_host' }, ({ payload }) => {

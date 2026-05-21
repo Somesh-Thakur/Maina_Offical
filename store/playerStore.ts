@@ -26,18 +26,18 @@ interface PlayerState {
   autoplay: boolean;
   
   // Actions
-  play: (track: Track) => void;
-  pause: () => void;
-  resume: () => void;
-  togglePlayPause: () => void;
-  next: () => void;
-  previous: () => void;
+  play: (track: Track, force?: boolean) => void;
+  pause: (force?: boolean) => void;
+  resume: (force?: boolean) => void;
+  togglePlayPause: (force?: boolean) => void;
+  next: (force?: boolean) => void;
+  previous: (force?: boolean) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
-  seek: (seconds: number) => void;
-  setProgress: (progress: number) => void;
+  seek: (seconds: number, force?: boolean) => void;
+  setProgress: (progress: number, force?: boolean) => void;
   setDuration: (duration: number) => void;
   setQueue: (tracks: Track[]) => void;
   addToQueue: (track: Track, next?: boolean) => void;
@@ -53,7 +53,8 @@ interface PlayerState {
   fetchAutoplayTrack: (track: Track) => Promise<void>;
 }
 
-const checkVibeAuth = (): boolean => {
+const checkVibeAuth = (force = false): boolean => {
+  if (force) return true;
   const vibe = useVibeStore.getState();
   const user = useUserStore.getState().user;
   
@@ -84,8 +85,8 @@ export const usePlayerStore = create<PlayerState>()(
       showVibePanel: false,
       autoplay: true,
 
-      play: (track) => {
-        if (!checkVibeAuth()) return;
+      play: (track, force = false) => {
+        if (!checkVibeAuth(force)) return;
         const { currentTrack, history } = get();
         const newHistory = currentTrack ? [...history, currentTrack].slice(-500) : history;
         set({ currentTrack: track, isPlaying: true, history: newHistory, progress: 0, duration: track.duration });
@@ -93,23 +94,23 @@ export const usePlayerStore = create<PlayerState>()(
         // Log to cloud trending history
         fetch('/api/player/history', { method: 'POST', body: JSON.stringify({ track }) }).catch(console.error);
       },
-      pause: () => {
-        if (!checkVibeAuth()) return;
+      pause: (force = false) => {
+        if (!checkVibeAuth(force)) return;
         set({ isPlaying: false });
       },
-      resume: () => {
-        if (!checkVibeAuth()) return;
+      resume: (force = false) => {
+        if (!checkVibeAuth(force)) return;
         set({ isPlaying: !!get().currentTrack });
       },
-      togglePlayPause: () => {
-        if (!checkVibeAuth()) return;
+      togglePlayPause: (force = false) => {
+        if (!checkVibeAuth(force)) return;
         set((state) => {
           if (!state.currentTrack) return state;
           return { isPlaying: !state.isPlaying };
         });
       },
-      next: () => {
-        if (!checkVibeAuth()) return;
+      next: (force = false) => {
+        if (!checkVibeAuth(force)) return;
         const { queue, currentTrack, history, repeat, shuffle } = get();
         
         if (repeat === 'one' && currentTrack) {
@@ -135,8 +136,8 @@ export const usePlayerStore = create<PlayerState>()(
         const newHistory = currentTrack ? [...history, currentTrack].slice(-500) : history;
         set({ currentTrack: nextTrack, queue: newQueue, history: newHistory, isPlaying: true, progress: 0 });
       },
-      previous: () => {
-        if (!checkVibeAuth()) return;
+      previous: (force = false) => {
+        if (!checkVibeAuth(force)) return;
         const { history, currentTrack, queue } = get();
         if (history.length === 0) {
           set({ progress: 0 }); // Just restart track
@@ -156,15 +157,15 @@ export const usePlayerStore = create<PlayerState>()(
         const nextMode = { off: 'all', all: 'one', one: 'off' } as const;
         return { repeat: nextMode[state.repeat] };
       }),
-      seek: (seconds) => {
-        if (!checkVibeAuth()) return;
+      seek: (seconds, force = false) => {
+        if (!checkVibeAuth(force)) return;
         const { duration } = get();
         if (duration > 0) {
           set({ progress: seconds / duration });
         }
       },
-      setProgress: (progress) => {
-        if (!checkVibeAuth()) return;
+      setProgress: (progress, force = false) => {
+        if (!checkVibeAuth(force)) return;
         set({ progress });
       },
       setDuration: (duration) => set({ duration }),
