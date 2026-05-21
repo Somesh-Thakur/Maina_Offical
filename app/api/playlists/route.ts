@@ -42,3 +42,70 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({ ok: true, playlist: data });
 }
+
+export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const sb = getSupabaseAdmin();
+  const uid = session.user.id;
+
+  // Fetch owned playlists and collaborated playlists
+  const { data: ownedPlaylists } = await sb
+    .from('playlists')
+    .select('id, name, cover_url, description, created_at')
+    .eq('owner_id', uid);
+
+  const { data: collabLinks } = await sb
+    .from('playlist_collaborators')
+    .select('playlist_id')
+    .eq('user_id', uid);
+
+  let collabPlaylists: any[] = [];
+  if (collabLinks && collabLinks.length > 0) {
+    const playlistIds = collabLinks.map(c => c.playlist_id);
+    const { data: collabs } = await sb
+      .from('playlists')
+      .select('id, name, cover_url, description, created_at')
+      .in('id', playlistIds);
+    if (collabs) collabPlaylists = collabs;
+  }
+
+  // Combine and deduplicate
+  const allMap = new Map();
+  ownedPlaylists?.forEach(p => allMap.set(p.id, p));
+  collabPlaylists.forEach(p => allMap.set(p.id, p));
+  const combined = Array.from(allMap.values());
+
+  // Also fetch tracks for these playlists
+  const playlistIds = combined.map(p => p.id);
+  let allTracks: any[] = [];
+  let playlistTracksMap: Record<string, any[]> = {};
+  
+  if (playlistIds.length > 0) {
+    const { data: tracksData } = await sb
+      .from('playlist_tracks')
+      .select('playlist_id, track_data, track_id')
+      .in('playlist_id', playlistIds);
+      
+    if (tracksData) {
+      tracksData.forEach(pt => {
+        if (!playlistTracksMap[pt.playlist_id]) playlistTracksMap[pt.playlist_id] = [];
+        playlistTracksMap[pt.playlist_id].push(pt.track_id);
+        allTracks.push(pt.track_data);
+      });
+    }
+  }
+
+  const finalPlaylists = combined.map(p => ({
+    id: p.id,
+    name: p.name,
+    coverUrl: p.cover_url || '',
+    description: p.description || '',
+    tracks: playlistTracksMap[p.id] || [],
+    createdAt: new Date(p.created_at).getTime(),
+    updatedAt: new Date(p.created_at).getTime()
+  }));
+
+  return NextResponse.json({ playlists: finalPlaylists, tracks: allTracks });
+}

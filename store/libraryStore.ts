@@ -58,28 +58,47 @@ export const useLibraryStore = create<LibraryState>((set, get) => ({
       fetch('/api/library/likes').then(r => r.json()).then(async data => {
         if (!data.tracks) return;
         
-        // Save cloud tracks to local DB
-        await db.tracks.bulkPut(data.tracks);
+        let shouldUpdate = false;
+        const currentLikes = await db.likedSongs.toArray();
+        const serverLikes = new Set(data.likes.map((l: any) => l.track_id));
         
-        // Update local likedSongs from cloud
-        const cloudLikes = data.tracks.map((t: Track) => ({
-          trackId: t.id,
-          likedAt: Date.now() // Approximated since cloud doesn't send liked_at yet
-        }));
-        await db.likedSongs.clear();
-        await db.likedSongs.bulkAdd(cloudLikes);
-
-        // Reload local state
-        const [newLikes, newTracks] = await Promise.all([db.likedSongs.toArray(), db.tracks.toArray()]);
-        const newTrackMap: Record<string, Track> = {};
-        newTracks.forEach(t => { newTrackMap[t.id] = t; });
-        const newLikedTracks = newLikes.sort((a, b) => b.likedAt - a.likedAt).map(s => newTrackMap[s.trackId]).filter(Boolean);
-        
-        set({ likedSongs: newLikes, trackMap: newTrackMap, likedTracks: newLikedTracks });
+        // Add new likes
+        for (const track of data.tracks) {
+          if (!currentLikes.find(l => l.trackId === track.id)) {
+            await db.tracks.put(track);
+            await db.likedSongs.put({ trackId: track.id, likedAt: Date.now() });
+            shouldUpdate = true;
+          }
+        }
+        if (shouldUpdate) get().loadLibrary();
       }).catch(console.error);
 
-    } catch (e) {
-      console.error("Failed to load library", e);
+      // Background Cloud Sync (Playlists)
+      fetch('/api/playlists').then(r => r.json()).then(async data => {
+        if (!data.playlists) return;
+        
+        let shouldUpdate = false;
+        
+        // Put tracks first
+        if (data.tracks && data.tracks.length > 0) {
+          for (const track of data.tracks) {
+            await db.tracks.put(track);
+          }
+        }
+        
+        // Put playlists
+        for (const cloudPlaylist of data.playlists) {
+          const existing = await db.playlists.get(cloudPlaylist.id);
+          if (!existing || existing.updatedAt < cloudPlaylist.updatedAt) {
+            await db.playlists.put(cloudPlaylist);
+            shouldUpdate = true;
+          }
+        }
+        
+        if (shouldUpdate) get().loadLibrary();
+      }).catch(console.error);
+    } catch (error) {
+      console.error('Failed to load library:', error);
     }
   },
 
