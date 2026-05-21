@@ -28,11 +28,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) return null;
+        const normalizedEmail = (credentials.email as string).trim().toLowerCase();
+
         const supabase = getSupabaseAdmin();
         const { data: user } = await supabase
           .from('profiles')
           .select('*')
-          .eq('email', credentials.email as string)
+          .eq('email', normalizedEmail)
           .single();
 
         if (!user || !user.password_hash) return null;

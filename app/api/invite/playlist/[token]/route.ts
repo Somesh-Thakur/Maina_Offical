@@ -14,7 +14,7 @@ export async function GET(
   const baseUrl = req.nextUrl.origin;
 
   if (!session?.user?.id) {
-    return NextResponse.redirect(new URL(`/login?next=/invite/playlist/${token}`, baseUrl));
+    return NextResponse.redirect(new URL(`/login?next=/api/invite/playlist/${token}`, baseUrl));
   }
 
   const sb  = getSupabaseAdmin();

@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
       
       const tracks = data.trackList || data.tracks?.items || [];
       
-      // Limit to 30 tracks to avoid extreme API quota usage in a single request
-      const tracksToProcess = tracks.slice(0, 30);
+      // Limit to 100 tracks to avoid extreme API quota usage in a single request (each search costs 100 quota units)
+      const tracksToProcess = tracks.slice(0, 100);
       
       for (const track of tracksToProcess) {
         let trackName = track.title || track.track?.name;

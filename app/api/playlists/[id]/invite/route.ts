@@ -32,5 +32,5 @@ export async function POST(
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const baseUrl = req.nextUrl.origin;
-  return NextResponse.json({ url: `${baseUrl}/invite/playlist/${invite.token}` });
+  return NextResponse.json({ url: `${baseUrl}/api/invite/playlist/${invite.token}` });
 }

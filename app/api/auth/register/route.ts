@@ -3,7 +3,15 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
-  const { email, password, username } = await req.json();
+  let rawBody;
+  try {
+    rawBody = await req.json();
+  } catch (e) {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { email: rawEmail, password, username } = rawBody;
+  const email = rawEmail?.trim().toLowerCase();
 
   if (!email || !password || !username) {
     return NextResponse.json({ error: 'All fields required' }, { status: 400 });

@@ -49,12 +49,19 @@ function mapToTracks(items: any[]): Track[] {
 
 export async function getVideoDetails(videoIds: string[]): Promise<Track[]> {
   if (videoIds.length === 0) return [];
-  const idsToQuery = videoIds.slice(0, 50).join(',');
-  const data = await fetchYouTube('videos', {
-    part: 'snippet,contentDetails',
-    id: idsToQuery
-  });
-  return mapToTracks(data.items);
+  
+  let allTracks: Track[] = [];
+  
+  for (let i = 0; i < videoIds.length; i += 50) {
+    const idsToQuery = videoIds.slice(i, i + 50).join(',');
+    const data = await fetchYouTube('videos', {
+      part: 'snippet,contentDetails',
+      id: idsToQuery
+    });
+    allTracks = allTracks.concat(mapToTracks(data.items));
+  }
+  
+  return allTracks;
 }
 
 export async function searchVideos(query: string, maxResults: number = 20): Promise<Track[]> {
@@ -138,22 +145,34 @@ export async function getRelatedArtists(query: string) {
 }
 
 export async function getPlaylistItems(playlistId: string): Promise<Track[]> {
-  // 1. Fetch playlist items (max 50)
-  const data = await fetchYouTube('playlistItems', {
-    part: 'snippet',
-    playlistId,
-    maxResults: 50
-  });
-  
-  if (!data.items || data.items.length === 0) return [];
+  let allVideoIds: string[] = [];
+  let nextPageToken: string | undefined = undefined;
+  let pageCount = 0;
+  const MAX_PAGES = 10; // 500 items max
 
-  // 2. Extract video IDs
-  const videoIds = data.items
-    .map((item: any) => item.snippet?.resourceId?.videoId)
-    .filter(Boolean);
+  do {
+    const params: any = {
+      part: 'snippet',
+      playlistId,
+      maxResults: 50
+    };
+    if (nextPageToken) params.pageToken = nextPageToken;
 
-  if (videoIds.length === 0) return [];
+    const data = await fetchYouTube('playlistItems', params);
+    
+    if (!data.items || data.items.length === 0) break;
 
-  // 3. Fetch details to get durations
-  return getVideoDetails(videoIds);
+    const videoIds = data.items
+      .map((item: any) => item.snippet?.resourceId?.videoId)
+      .filter(Boolean);
+
+    allVideoIds = allVideoIds.concat(videoIds);
+    nextPageToken = data.nextPageToken;
+    pageCount++;
+  } while (nextPageToken && pageCount < MAX_PAGES);
+
+  if (allVideoIds.length === 0) return [];
+
+  // Fetch details to get durations
+  return getVideoDetails(allVideoIds);
 }
