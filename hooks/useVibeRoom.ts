@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useVibeStore } from '@/store/vibeStore';
 import { usePlayerStore } from '@/store/playerStore';
 import { useUserStore } from '@/store/userStore';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabase } from '@/lib/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useVibeRoom() {
@@ -17,7 +17,7 @@ export function useVibeRoom() {
   // Connection logic
   useEffect(() => {
     if (!roomId || !user) return;
-    const supabase = getSupabaseClient();
+    const supabase = getSupabase();
     
     setStatus('connecting');
     

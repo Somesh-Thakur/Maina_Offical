@@ -16,7 +16,7 @@ interface VibeState {
 
   // Actions
   setRoom: (roomId: string, hostId: string) => void;
-  setStatus: (status: VibeState['status'], error?: string) => void;
+  setStatus: (status: VibeState['status'], error?: string | null) => void;
   setParticipants: (participants: VibeParticipant[]) => void;
   addParticipant: (participant: VibeParticipant) => void;
   removeParticipant: (id: string) => void;

@@ -5,6 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TauriTitleBar } from "@/components/ui/TauriTitleBar";
 import { GlobalContextMenuProvider } from "@/components/ui/GlobalContextMenu";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Maina",
@@ -44,6 +45,7 @@ export default function RootLayout({
             </AppShell>
           </GlobalContextMenuProvider>
         </AuthProvider>
+        <Toaster position="bottom-right" toastOptions={{ style: { background: '#1c1c1c', color: '#fff', border: '1px solid #333' } }} />
         
         {/* YouTube IFrame API */}
         <Script src="https://www.youtube.com/iframe_api" strategy="afterInteractive" />
