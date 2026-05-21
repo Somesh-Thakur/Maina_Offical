@@ -190,6 +190,40 @@ export default function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-6">
+        <h2 className="text-2xl font-display font-bold">App Settings & Links</h2>
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+          {user?.role === 'admin' && (
+            <a href="/admin" className="px-4 py-3 bg-yellow-400/10 text-yellow-400 hover:bg-yellow-400/20 rounded-md transition-colors font-medium flex items-center justify-between">
+              Admin Panel
+              <span>&rarr;</span>
+            </a>
+          )}
+          <a href="/feedback" className="px-4 py-3 bg-white/5 text-white hover:bg-white/10 rounded-md transition-colors font-medium flex items-center justify-between">
+            Report Bug / Feedback
+            <span>&rarr;</span>
+          </a>
+          <a href="/download" className="px-4 py-3 bg-[var(--accent)]/10 text-[var(--accent)] hover:bg-[var(--accent)]/20 rounded-md transition-colors font-medium flex items-center justify-between">
+            Get the Desktop App (Discord RPC & more)
+            <span>&rarr;</span>
+          </a>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-6">
+        <h2 className="text-2xl font-display font-bold">Account Options</h2>
+        <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+          <button onClick={() => {
+            document.cookie = 'maina_guest=; Max-Age=0; path=/;';
+            localStorage.removeItem('maina_temp_session');
+            window.location.href = '/api/auth/signout';
+          }} className="px-4 py-3 bg-red-500/10 text-red-500 hover:bg-red-500/20 rounded-md transition-colors font-medium flex items-center justify-between w-full text-left">
+            Sign Out
+            <span>&rarr;</span>
+          </button>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-6">
         <h2 className="text-2xl font-display font-bold">About Maina</h2>
         <div className="bg-white/[0.03] border border-white/10 rounded-xl p-6 text-sm text-[#a3a3a3] leading-relaxed">
           <p className="mb-4">Maina is a premium, personal-use music player powered by YouTube and the Web Audio API.</p>

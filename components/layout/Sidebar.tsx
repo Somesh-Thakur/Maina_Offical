@@ -79,74 +79,29 @@ export default function Sidebar() {
         </ul>
       </div>
 
-      {/* User & Settings Section */}
-      <div className="mt-auto pt-4 border-t border-white/8 flex flex-col gap-2">
+      {/* User Section */}
+      <div className="mt-auto pt-4 border-t border-white/8">
         {user ? (
-          <>
-            <div className="flex items-center gap-3 px-3 py-2 bg-white/5 rounded-xl border border-white/10">
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 overflow-hidden text-sm font-bold">
-                {user.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  (user.displayName?.[0] ?? user.username?.[0] ?? '?').toUpperCase()
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate text-white">{user.displayName}</p>
-                <p className="text-[10px] text-white/40 truncate">@{user.username}</p>
-              </div>
+          <Link href="/settings" className="flex items-center gap-3 px-3 py-2 bg-white/5 hover:bg-white/10 transition-colors rounded-xl border border-white/10 group cursor-pointer">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 overflow-hidden text-sm font-bold">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                (user.displayName?.[0] ?? user.username?.[0] ?? '?').toUpperCase()
+              )}
             </div>
-
-            {user.role === 'admin' && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-yellow-400 hover:bg-yellow-400/10 transition-colors"
-              >
-                <Shield size={16} /> Admin Panel
-              </Link>
-            )}
-
-            <Link
-              href="/feedback"
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#a3a3a3] hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <MessageSquare size={16} /> Report Bug / Feedback
-            </Link>
-
-            <Link
-              href="/settings"
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-[#a3a3a3] hover:text-white hover:bg-white/5 transition-colors"
-            >
-              <Settings size={16} /> Settings
-            </Link>
-
-            <button
-              onClick={() => signOut({ callbackUrl: '/' })}
-              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-red-400 hover:bg-red-400/10 transition-colors text-left"
-            >
-              <LogOut size={16} /> Sign Out
-            </button>
-          </>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate text-white group-hover:text-[var(--accent)] transition-colors">{user.displayName}</p>
+              <p className="text-[10px] text-white/40 truncate">@{user.username}</p>
+            </div>
+            <Settings size={16} className="text-white/40 group-hover:text-white transition-colors" />
+          </Link>
         ) : (
           <Link
             href="/login"
             className="flex items-center gap-3 px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90 transition-colors justify-center"
           >
             <LogIn size={16} /> Sign In
-          </Link>
-        )}
-
-        {isMounted && !('__TAURI_INTERNALS__' in window) && (
-          <Link
-            href="/download"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-colors group mt-2"
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/maina-logo.png" alt="" className="w-6 h-6 object-contain rounded" />
-            <div>
-              <div className="text-xs font-semibold text-[var(--accent)]">Get the Desktop App</div>
-              <div className="text-[10px] text-[#a3a3a3]">Discord RPC &amp; more</div>
-            </div>
           </Link>
         )}
       </div>
